@@ -75,7 +75,7 @@ const Index = () => {
             
             {isAiResponding && (
               <div className="flex justify-start mb-4 animate-fade-in opacity-0">
-                <div className="chat-message-ai bg-chat-ai p-4 rounded-2xl shadow-sm ml-2">
+                <div className="chat-bubble ai">
                   <div className="typing-indicator">
                     <span className="typing-dot"></span>
                     <span className="typing-dot"></span>

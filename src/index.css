@@ -37,13 +37,13 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 11%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 11%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
 
     --primary: 210 80% 56%;
@@ -79,39 +79,38 @@
 
   .chat-container {
     background-image: 
-      radial-gradient(circle at 0% 0%, rgba(0, 0, 0, 0.01) 0%, transparent 50%),
-      radial-gradient(circle at 100% 100%, rgba(0, 0, 0, 0.01) 0%, transparent 50%);
+      radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
   }
 
-  .chat-message {
+  .chat-bubble {
     position: relative;
+    border-radius: 1.5rem;
+    padding: 0.75rem 1rem;
+    max-width: 80%;
+    width: auto;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    transition: all 0.2s ease-out;
   }
 
-  .chat-message:hover {
-    transform: translateY(-1px);
-    transition: all 0.2s ease-out;
+  .chat-bubble.user {
+    @apply bg-chat-user text-white dark:bg-chat-user;
+    border-bottom-right-radius: 0.25rem;
+    margin-left: auto;
   }
 
-  .chat-message-user::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: -10px;
-    width: 20px;
-    height: 20px;
-    background: radial-gradient(circle at top right, transparent 50%, #E8F5FE 51%);
+  .chat-bubble.ai {
+    @apply bg-chat-ai text-gray-800 dark:text-gray-200;
+    border-bottom-left-radius: 0.25rem;
+    margin-right: auto;
   }
 
-  .chat-message-ai::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: -10px;
-    width: 20px;
-    height: 20px;
-    background: radial-gradient(circle at top left, transparent 50%, #F8F8F8 51%);
+  .light .chat-bubble.user {
+    @apply bg-chat-userLight text-blue-900;
+  }
+
+  .light .chat-bubble.ai {
+    @apply bg-chat-aiLight text-gray-800;
   }
 
   .typing-indicator {

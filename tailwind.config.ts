@@ -64,8 +64,10 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				chat: {
-					user: '#E8F5FE',
-					ai: '#F8F8F8',
+					user: '#1E3A8A', // Dark blue for user in dark mode
+					userLight: '#E8F5FE', // Light blue for user in light mode
+					ai: '#3B3B3B', // Dark gray for AI in dark mode
+					aiLight: '#F8F8F8', // Light gray for AI in light mode
 				}
 			},
 			borderRadius: {

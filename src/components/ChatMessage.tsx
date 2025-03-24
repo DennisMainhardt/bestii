@@ -34,10 +34,8 @@ const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
     >
       <div
         className={cn(
-          "chat-message max-w-[80%] sm:max-w-[70%] p-4 rounded-2xl shadow-sm",
-          isUser 
-            ? "chat-message-user bg-chat-user text-blue-900 mr-2" 
-            : "chat-message-ai bg-chat-ai text-gray-800 ml-2"
+          "chat-bubble max-w-[80%] sm:max-w-[70%] shadow-sm",
+          isUser ? "user" : "ai"
         )}
       >
         <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">
@@ -45,7 +43,7 @@ const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
         </p>
         <div className={cn(
           "text-xs mt-1 opacity-0 transition-opacity group-hover:opacity-60",
-          isUser ? "text-right text-blue-700" : "text-left text-gray-500"
+          isUser ? "text-right text-blue-100" : "text-left text-gray-400"
         )}>
           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
