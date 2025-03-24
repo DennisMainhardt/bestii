@@ -1,6 +1,7 @@
 
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
+import { Check, CheckCheck } from "lucide-react";
 
 export type MessageType = {
   id: string;
@@ -28,24 +29,27 @@ const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
     <div 
       ref={messageRef}
       className={cn(
-        "group flex w-full mb-4 animate-fade-in opacity-0",
+        "group flex w-full mb-2 animate-fade-in opacity-0",
         isUser ? "justify-end" : "justify-start"
       )}
     >
       <div
         className={cn(
-          "chat-bubble max-w-[80%] sm:max-w-[70%] shadow-sm",
+          "chat-bubble max-w-[80%] sm:max-w-[65%]",
           isUser ? "user" : "ai"
         )}
       >
-        <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">
+        <p className="text-sm leading-tight whitespace-pre-wrap break-words">
           {message.content}
         </p>
         <div className={cn(
-          "text-xs mt-1 opacity-0 transition-opacity group-hover:opacity-60",
-          isUser ? "text-right text-blue-100" : "text-left text-gray-400"
+          "text-[11px] mt-1 flex items-center justify-end gap-1",
+          isUser ? "text-[#AED8BE] dark:text-[#AED8BE] light:text-[#88B68F]" : "text-[#8696A0]"
         )}>
           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {isUser && (
+            <CheckCheck size={16} className="text-[#53BDEB] dark:text-[#53BDEB] light:text-[#53BDEB]" />
+          )}
         </div>
       </div>
     </div>

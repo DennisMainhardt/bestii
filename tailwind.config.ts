@@ -64,10 +64,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				chat: {
-					user: '#1E3A8A', // Dark blue for user in dark mode
-					userLight: '#E8F5FE', // Light blue for user in light mode
-					ai: '#3B3B3B', // Dark gray for AI in dark mode
-					aiLight: '#F8F8F8', // Light gray for AI in light mode
+					// WhatsApp dark mode colors
+					user: '#005C4B', // WhatsApp green bubble color
+					userLight: '#DCF8C6', // WhatsApp light mode green bubble
+					ai: '#202C33', // WhatsApp dark mode received bubble
+					aiLight: '#FFFFFF', // WhatsApp light mode received bubble
 				}
 			},
 			borderRadius: {
