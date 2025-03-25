@@ -35,15 +35,15 @@ const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
     >
       <div
         className={cn(
-          "chat-bubble max-w-[80%] sm:max-w-[65%]",
+          "chat-bubble max-w-[80%] sm:max-w-[65%] rounded-2xl p-4",
           isUser ? "user" : "ai"
         )}
       >
-        <p className="text-sm leading-tight whitespace-pre-wrap break-words">
+        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
           {message.content}
         </p>
         <div className={cn(
-          "text-[11px] mt-1 flex items-center justify-end gap-1",
+          "text-[11px] mt-2 flex items-center justify-end gap-1",
           isUser ? "text-[#AED8BE] dark:text-[#AED8BE] light:text-[#88B68F]" : "text-[#8696A0]"
         )}>
           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
