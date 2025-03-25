@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 import { Check, CheckCheck } from "lucide-react";
@@ -6,7 +5,7 @@ import { Check, CheckCheck } from "lucide-react";
 export type MessageType = {
   id: string;
   content: string;
-  sender: "user" | "ai";
+  sender: "user" | "ai" | "raze";
   timestamp: Date;
 };
 
@@ -18,7 +17,8 @@ interface ChatMessageProps {
 const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
   const messageRef = useRef<HTMLDivElement>(null);
   const isUser = message.sender === "user";
-  
+  const isRaze = message.sender === "raze";
+
   useEffect(() => {
     if (isLatest && messageRef.current) {
       messageRef.current.scrollIntoView({ behavior: "smooth" });
@@ -26,7 +26,7 @@ const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
   }, [isLatest]);
 
   return (
-    <div 
+    <div
       ref={messageRef}
       className={cn(
         "group flex w-full mb-2 animate-fade-in opacity-0",

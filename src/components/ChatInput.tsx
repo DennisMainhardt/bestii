@@ -11,25 +11,25 @@ interface ChatInputProps {
 const ChatInput = ({ onSendMessage, isAiResponding }: ChatInputProps) => {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
+
   const handleSendMessage = () => {
     if (message.trim() && !isAiResponding) {
       onSendMessage(message.trim());
       setMessage("");
-      
+
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
     }
   };
-  
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
-  
+
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -38,7 +38,7 @@ const ChatInput = ({ onSendMessage, isAiResponding }: ChatInputProps) => {
   }, [message]);
 
   return (
-    <div className="w-full bg-background/90 backdrop-blur-sm border-t p-4 sticky bottom-0 z-10">
+    <div className="w-full bg-background/90 backdrop-blur-sm p-4 sticky bottom-0 z-10">
       <div className="max-w-3xl mx-auto flex items-end gap-2">
         <div className="flex-1 relative">
           <textarea

@@ -15,11 +15,19 @@ const Header = ({ className }: HeaderProps) => {
           <button className="p-1 text-white opacity-80 hover:opacity-100">
             <ArrowLeft size={22} />
           </button>
-          <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#00A884] to-[#00A884] flex items-center justify-center shadow-sm">
-            <span className="text-white text-sm font-medium">AI</span>
+          <div className="w-9 h-9 rounded-full overflow-hidden shadow-sm">
+            <img
+              src="/raze.png"
+              alt="Raze Profile"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "/fallback-avatar.png";
+              }}
+            />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-white text-base font-medium">Therapy Assistant</h1>
+            <h1 className="text-white text-base font-medium">Raze</h1>
             <span className="text-[#8696A0] text-xs">online</span>
           </div>
         </div>
