@@ -181,7 +181,7 @@ const Chat = () => {
       <ChatHeader onPersonaSelect={handlePersonaSelect} currentPersona={currentPersona} />
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-4 pt-32 pb-6 space-y-4 overscroll-contain w-full"
+        className="flex-1 overflow-y-auto px-4 pt-32 md:pt-16 pb-6 space-y-4 overscroll-contain w-full"
       >
         {currentChat.messages.length === 0 ? (
           <>

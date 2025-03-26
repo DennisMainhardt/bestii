@@ -1,10 +1,11 @@
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Home } from "lucide-react";
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import { Persona } from "@/types/persona";
 import { Button } from "./ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface ChatHeaderProps {
   className?: string;
@@ -14,6 +15,7 @@ interface ChatHeaderProps {
 
 const ChatHeader = ({ className, onPersonaSelect, currentPersona }: ChatHeaderProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <>
@@ -52,6 +54,14 @@ const ChatHeader = ({ className, onPersonaSelect, currentPersona }: ChatHeaderPr
             </div>
           </div>
           <div className="flex items-center gap-3 ml-auto">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/")}
+              className="text-white hover:bg-[#313d45] hover:text-white hidden md:block"
+            >
+              <Home className="h-5 w-5" />
+            </Button>
             <ThemeToggle isInChat />
           </div>
         </div>
