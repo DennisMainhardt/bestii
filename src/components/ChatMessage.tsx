@@ -1,23 +1,20 @@
-import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
-import { Check, CheckCheck } from "lucide-react";
-
-export type MessageType = {
-  id: string;
-  content: string;
-  sender: "user" | "ai" | "raze";
-  timestamp: Date;
-};
+import { CheckCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { MessageType } from "@/types/message";
 
 interface ChatMessageProps {
   message: MessageType;
   isLatest: boolean;
+  currentPersona?: {
+    id: string;
+    name: string;
+  };
 }
 
-const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
+const ChatMessage = ({ message, isLatest, currentPersona }: ChatMessageProps) => {
   const messageRef = useRef<HTMLDivElement>(null);
   const isUser = message.sender === "user";
-  const isRaze = message.sender === "raze";
 
   useEffect(() => {
     if (isLatest && messageRef.current) {
@@ -39,6 +36,11 @@ const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
           isUser ? "user" : "ai"
         )}
       >
+        {!isUser && currentPersona && (
+          <div className="text-xs text-muted-foreground/70 mb-1">
+            {currentPersona.name}
+          </div>
+        )}
         <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
           {message.content}
         </p>

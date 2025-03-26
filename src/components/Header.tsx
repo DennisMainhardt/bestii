@@ -3,12 +3,15 @@ import ThemeToggle from "./ThemeToggle";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import Sidebar from "./Sidebar";
+import { Persona } from "@/types/persona";
 
 interface HeaderProps {
   className?: string;
+  onPersonaSelect: (persona: Persona) => void;
+  currentPersona: Persona;
 }
 
-const Header = ({ className }: HeaderProps) => {
+const Header = ({ className, onPersonaSelect, currentPersona }: HeaderProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
@@ -24,17 +27,17 @@ const Header = ({ className }: HeaderProps) => {
             </button>
             <div className="w-9 h-9 rounded-full overflow-hidden shadow-sm">
               <img
-                src="/raze.png"
-                alt="Raze Profile"
+                src={`/${currentPersona.id}.svg`}
+                alt={`${currentPersona.name} Profile`}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = "/fallback-avatar.png";
+                  target.src = "/fallback-avatar.svg";
                 }}
               />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-white text-base font-medium">Raze</h1>
+              <h1 className="text-white text-base font-medium">{currentPersona.name}</h1>
               <span className="text-[#8696A0] text-xs">online</span>
             </div>
           </div>
@@ -46,7 +49,11 @@ const Header = ({ className }: HeaderProps) => {
           </div>
         </div>
       </header>
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onSelectPersona={onPersonaSelect}
+      />
     </>
   );
 };

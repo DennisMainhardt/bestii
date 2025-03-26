@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import animatePlugin from 'tailwindcss-animate';
 
 export default {
   darkMode: ['class'],
@@ -12,9 +13,9 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: '1rem',
+      padding: '2rem',
       screens: {
-        '2xl': '1200px',
+        '2xl': '1400px',
       },
     },
     extend: {
@@ -55,15 +56,18 @@ export default {
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',
           foreground: 'hsl(var(--sidebar-foreground))',
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          primary: {
+            DEFAULT: 'hsl(var(--sidebar-primary))',
+            foreground: 'hsl(var(--sidebar-primary-foreground))',
+          },
+          accent: {
+            DEFAULT: 'hsl(var(--sidebar-accent))',
+            foreground: 'hsl(var(--sidebar-accent-foreground))',
+          },
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
         chat: {
-          // WhatsApp dark mode colors
           user: '#005C4B', // WhatsApp green bubble color
           userLight: '#DCF8C6', // WhatsApp light mode green bubble
           ai: '#202C33', // WhatsApp dark mode received bubble
@@ -119,5 +123,5 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [animatePlugin],
 } satisfies Config;

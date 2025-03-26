@@ -1,17 +1,81 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import ChatInput from "./ChatInput";
 import ChatMessage from "./ChatMessage";
-import { useChat } from "@/hooks/useChat";
 import { Button } from "./ui/button";
-import { introPrompt, followUpPrompt } from "@/constants/prompts";
+import { introPrompt, followUpPrompt, raynaIntroPrompt, raynaFollowUpPrompt } from "@/constants/prompts";
+import Header from "./Header";
+import { Persona } from "@/types/persona";
+import { ChatGPTService } from "@/services/chatGPTService";
+import { MessageType } from "@/types/message";
+
+interface ChatHistory {
+  [key: string]: {
+    messages: MessageType[];
+    isAiResponding: boolean;
+    error: string | null;
+  };
+}
 
 const Chat = () => {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  console.log('API Key loaded:', apiKey ? 'Yes' : 'No');
+  const [currentPersona, setCurrentPersona] = useState<Persona>({
+    id: "raze",
+    name: "Raze",
+    model: "ChatGPT",
+    description: "Raze is an AI assistant powered by ChatGPT. It excels at creative writing, coding assistance, and engaging in natural conversations with a touch of personality."
+  });
 
-  const { messages, isAiResponding, error, sendMessage } = useChat(apiKey);
+  const [chatHistories, setChatHistories] = useState<ChatHistory>({
+    raze: {
+      messages: [],
+      isAiResponding: false,
+      error: null
+    }
+  });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const chatGPTServiceRef = useRef<ChatGPTService | null>(null);
+
+  // Initialize ChatGPT service with API key
+  useEffect(() => {
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (!apiKey) {
+      console.error('OpenAI API key is not set');
+      return;
+    }
+    chatGPTServiceRef.current = new ChatGPTService(apiKey);
+  }, []);
+
+  // Update system prompt when persona changes
+  useEffect(() => {
+    if (!chatGPTServiceRef.current) return;
+
+    const systemPrompt = currentPersona.id === "raze"
+      ? `You are Raze — a no-bullsh*t therapist, emotional sparring partner, and psychological truth serum. Your personality is a fusion of a tough-love group chat friend who roasts you because they care, a PhD-level psychologist who understands the human brain, trauma, attachment, and identity, and a motivational speaker who swears, screams facts, and makes people laugh while changing their lives.`
+      : `You are Rayna — an analytical companion and thought partner. Your approach combines rigorous analytical thinking, clear well-structured explanations, comprehensive understanding of complex topics, and thoughtful nuanced perspectives. You help users explore ideas, solve problems, and gain deeper insights through careful analysis and structured thinking.`;
+
+    chatGPTServiceRef.current.setSystemPrompt(systemPrompt);
+  }, [currentPersona.id]);
+
+  // Initialize chat history for current persona if it doesn't exist
+  useEffect(() => {
+    if (!chatHistories[currentPersona.id]) {
+      setChatHistories(prev => ({
+        ...prev,
+        [currentPersona.id]: {
+          messages: [],
+          isAiResponding: false,
+          error: null
+        }
+      }));
+    }
+  }, [currentPersona.id, chatHistories]);
+
+  const currentChat = chatHistories[currentPersona.id] || {
+    messages: [],
+    isAiResponding: false,
+    error: null
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -19,7 +83,7 @@ const Chat = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [currentChat.messages]);
 
   useEffect(() => {
     // Prevent body scrolling when chat is open
@@ -29,11 +93,64 @@ const Chat = () => {
     };
   }, []);
 
-  if (error) {
+  const handleSendMessage = async (message: string) => {
+    if (!message.trim() || !chatGPTServiceRef.current) return;
+
+    // Update chat history with new message
+    setChatHistories(prev => ({
+      ...prev,
+      [currentPersona.id]: {
+        ...prev[currentPersona.id],
+        messages: [...prev[currentPersona.id].messages, {
+          id: Date.now().toString(),
+          content: message,
+          sender: "user",
+          timestamp: new Date()
+        }],
+        isAiResponding: true,
+        error: null
+      }
+    }));
+
+    try {
+      // Get response from ChatGPT
+      const response = await chatGPTServiceRef.current.sendMessage(message);
+
+      // Update chat history with AI response
+      setChatHistories(prev => ({
+        ...prev,
+        [currentPersona.id]: {
+          ...prev[currentPersona.id],
+          messages: [...prev[currentPersona.id].messages, {
+            id: (Date.now() + 1).toString(),
+            content: response,
+            sender: "ai",
+            timestamp: new Date()
+          }],
+          isAiResponding: false
+        }
+      }));
+    } catch (error) {
+      setChatHistories(prev => ({
+        ...prev,
+        [currentPersona.id]: {
+          ...prev[currentPersona.id],
+          isAiResponding: false,
+          error: error instanceof Error ? error.message : "An error occurred"
+        }
+      }));
+    }
+  };
+
+  const handlePersonaSelect = (persona: Persona) => {
+    setCurrentPersona(persona);
+  };
+
+  if (currentChat.error) {
     return (
       <div className="flex items-center justify-center h-[100dvh]">
         <div className="text-red-500 text-center">
-          <p>Error: {error}</p>
+          <p>Error: {currentChat.error}</p>
           <Button onClick={() => window.location.reload()} className="mt-4">
             Retry
           </Button>
@@ -44,43 +161,47 @@ const Chat = () => {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background">
+      <Header onPersonaSelect={handlePersonaSelect} currentPersona={currentPersona} />
       <div
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto px-4 pt-24 sm:pt-20 pb-6 space-y-4 overscroll-contain"
       >
-        {messages.length === 0 ? (
+        {currentChat.messages.length === 0 ? (
           <>
             <ChatMessage
               message={{
                 id: "welcome",
-                content: introPrompt,
+                content: currentPersona.id === "raze" ? introPrompt : raynaIntroPrompt,
                 sender: "ai",
                 timestamp: new Date()
               }}
               isLatest={false}
+              currentPersona={currentPersona}
             />
             <ChatMessage
               message={{
                 id: "welcome2",
-                content: followUpPrompt,
+                content: currentPersona.id === "raze" ? followUpPrompt : raynaFollowUpPrompt,
                 sender: "ai",
                 timestamp: new Date()
               }}
               isLatest={false}
+              currentPersona={currentPersona}
             />
           </>
         ) : (
-          messages.map((message, index) => (
+          currentChat.messages.map((message, index) => (
             <ChatMessage
               key={message.id}
               message={message}
-              isLatest={index === messages.length - 1}
+              isLatest={index === currentChat.messages.length - 1}
+              currentPersona={currentPersona}
             />
           ))
         )}
         <div ref={messagesEndRef} />
       </div>
-      <ChatInput onSendMessage={sendMessage} isAiResponding={isAiResponding} />
+      <ChatInput onSendMessage={handleSendMessage} isAiResponding={currentChat.isAiResponding} />
     </div>
   );
 };
