@@ -58,7 +58,7 @@ const ChatHeader = ({ className, onPersonaSelect, currentPersona }: ChatHeaderPr
               variant="ghost"
               size="icon"
               onClick={() => navigate("/")}
-              className="text-white hover:bg-[#313d45] hover:text-white hidden md:block"
+              className="text-white hover:bg-[#313d45] hover:text-white hidden md:flex items-center justify-center"
             >
               <Home className="h-5 w-5" />
             </Button>
