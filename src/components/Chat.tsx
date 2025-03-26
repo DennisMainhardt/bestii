@@ -8,6 +8,7 @@ import { Persona } from "@/types/persona";
 import { ChatGPTService } from "@/services/chatGPTService";
 import { ClaudeService } from "@/services/claudeService";
 import { MessageType } from "@/types/message";
+import TypingIndicator from "./TypingIndicator";
 
 interface ChatHistory {
   [key: string]: {
@@ -231,6 +232,14 @@ const Chat = () => {
               currentPersona={currentPersona}
             />
           ))
+        )}
+        {/* Typing indicator */}
+        {currentChat.isAiResponding && (
+          <div className="flex justify-start">
+            <div className="chat-bubble ai max-w-[80%] sm:max-w-[65%] rounded-2xl p-4">
+              <TypingIndicator />
+            </div>
+          </div>
         )}
         {/* Invisible element for scrolling target */}
         <div ref={messagesEndRef} />
