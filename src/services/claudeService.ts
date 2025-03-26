@@ -24,7 +24,7 @@ export class ClaudeService {
 
     try {
       console.log('Sending request to Claude API...');
-      const response = await fetch('http://localhost:3001/api/claude', {
+      const response = await fetch('/api/claude', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

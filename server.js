@@ -6,9 +6,22 @@ import fetch from 'node-fetch';
 dotenv.config();
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
-app.use(cors());
+// Enable CORS for all routes
+app.use(
+  cors({
+    origin: '*', // In production, replace with your actual domain
+    methods: ['GET', 'POST'],
+    allowedHeaders: [
+      'Content-Type',
+      'x-api-key',
+      'anthropic-api-key',
+      'anthropic-version',
+    ],
+  })
+);
+
 app.use(express.json());
 
 app.post('/api/claude', async (req, res) => {
@@ -19,7 +32,6 @@ app.post('/api/claude', async (req, res) => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': process.env.VITE_ANTHROPIC_API_KEY,
-        'anthropic-api-key': process.env.VITE_ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -31,6 +43,12 @@ app.post('/api/claude', async (req, res) => {
       }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Claude API error:', errorText);
+      return res.status(response.status).json({ error: errorText });
+    }
+
     const data = await response.json();
     console.log('Claude API response:', data);
     res.json(data);
@@ -41,5 +59,5 @@ app.post('/api/claude', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });
