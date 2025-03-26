@@ -40,7 +40,8 @@ src/
 
 ## Routes
 
-- `/` - Main chat interface
+- `/` - Redirects to /chat
+- `/chat` - Main chat interface
 - `/settings` - User settings and preferences
 - `/history` - Chat history and past conversations
 
