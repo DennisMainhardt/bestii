@@ -89,23 +89,23 @@ const Chat = () => {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Use a short timeout to ensure the DOM has updated
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 10);
   };
 
+  // Handle auto-scrolling when messages change
   useEffect(() => {
     scrollToBottom();
   }, [currentChat.messages]);
 
-  useEffect(() => {
-    // Prevent body scrolling when chat is open
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, []);
-
+  // Handle user sending a message
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) return;
+
+    // First scroll to bottom before adding the new message
+    scrollToBottom();
 
     // Update chat history with new message
     setChatHistories(prev => ({
@@ -122,6 +122,9 @@ const Chat = () => {
         error: null
       }
     }));
+
+    // Scroll again after user message is added
+    scrollToBottom();
 
     try {
       // Get response from appropriate AI service
@@ -147,6 +150,9 @@ const Chat = () => {
           isAiResponding: false
         }
       }));
+
+      // Scroll again after AI response is added
+      scrollToBottom();
     } catch (error) {
       setChatHistories(prev => ({
         ...prev,
@@ -162,6 +168,14 @@ const Chat = () => {
   const handlePersonaSelect = (persona: Persona) => {
     setCurrentPersona(persona);
   };
+
+  // Prevent body scrolling but allow chat area scrolling
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
 
   if (currentChat.error) {
     return (
@@ -179,9 +193,11 @@ const Chat = () => {
   return (
     <div className="flex flex-col h-[100dvh] bg-background">
       <ChatHeader onPersonaSelect={handlePersonaSelect} currentPersona={currentPersona} />
+
+      {/* Main scrollable chat area */}
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-4 pt-32 md:pt-16 pb-6 space-y-4 overscroll-contain w-full"
+        className="flex-1 overflow-y-auto px-4 pt-32 md:pt-16 pb-24 space-y-4 overscroll-contain w-full"
       >
         {currentChat.messages.length === 0 ? (
           <>
@@ -216,11 +232,19 @@ const Chat = () => {
             />
           ))
         )}
+        {/* Invisible element for scrolling target */}
         <div ref={messagesEndRef} />
       </div>
-      <ChatInput onSendMessage={handleSendMessage} isAiResponding={currentChat.isAiResponding} />
+
+      {/* Fixed input area */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background z-10 border-t border-border">
+        <ChatInput
+          onSendMessage={handleSendMessage}
+          isAiResponding={currentChat.isAiResponding}
+        />
+      </div>
     </div>
   );
 };
 
-export default Chat; 
+export default Chat;
