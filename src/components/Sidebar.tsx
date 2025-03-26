@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Home } from "lucide-react";
 import { Persona } from "@/types/persona";
+import { useNavigate } from "react-router-dom";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectPersona: (persona: Persona) => void;
+  currentPersona: Persona;
 }
 
 const personas: Persona[] = [
@@ -23,7 +25,9 @@ const personas: Persona[] = [
   }
 ];
 
-const Sidebar = ({ isOpen, onClose, onSelectPersona }: SidebarProps) => {
+const Sidebar = ({ isOpen, onClose, onSelectPersona, currentPersona }: SidebarProps) => {
+  const navigate = useNavigate();
+
   return (
     <div
       className={`fixed inset-y-0 left-0 w-full md:w-[400px] bg-sidebar border-r transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"
@@ -32,15 +36,40 @@ const Sidebar = ({ isOpen, onClose, onSelectPersona }: SidebarProps) => {
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-          <h2 className="text-lg font-semibold text-sidebar-foreground">Select Persona</h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-sidebar-foreground hover:text-sidebar-foreground/80"
-          >
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="w-9 h-9 rounded-full overflow-hidden shadow-sm">
+              <img
+                src={`/${currentPersona.id}.svg`}
+                alt={`${currentPersona.name} Profile`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "/fallback-avatar.svg";
+                }}
+              />
+            </div>
+            <div className="flex flex-col">
+              <h2 className="text-lg font-semibold text-sidebar-foreground">{currentPersona.name}</h2>
+              <span className="text-xs text-sidebar-foreground/70">online</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/")}
+              className="p-1 text-sidebar-foreground opacity-80 hover:opacity-100 md:hidden"
+              aria-label="Go to homepage"
+            >
+              <Home size={22} />
+            </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="text-sidebar-foreground hover:text-sidebar-foreground/80"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         {/* Content */}

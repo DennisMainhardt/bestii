@@ -1,28 +1,17 @@
-
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
 
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  
-  useEffect(() => {
-    // Set dark mode as default
-    document.documentElement.classList.add("dark");
-    document.documentElement.classList.remove("light");
-  }, []);
+interface ThemeToggleProps {
+  isInChat?: boolean;
+}
+
+export function ThemeToggle({ isInChat = false }: ThemeToggleProps) {
+  const { theme, setTheme } = useTheme();
 
   const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    
-    if (newTheme === "dark") {
-      document.documentElement.classList.add("dark");
-      document.documentElement.classList.remove("light");
-    } else {
-      document.documentElement.classList.remove("dark");
-      document.documentElement.classList.add("light");
-    }
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   return (
@@ -30,7 +19,14 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      className="rounded-full w-8 h-8 border-none bg-transparent hover:bg-[#313d45] text-white opacity-80 hover:opacity-100"
+      className={cn(
+        "rounded-full w-8 h-8 border-none bg-transparent",
+        isInChat
+          ? "hover:bg-[#313d45] text-white opacity-80 hover:opacity-100"
+          : theme === "dark"
+            ? "hover:bg-[#313d45] text-white opacity-80 hover:opacity-100"
+            : "hover:bg-gray-200 text-gray-800 opacity-80 hover:opacity-100"
+      )}
     >
       {theme === "dark" ? (
         <Sun size={20} />

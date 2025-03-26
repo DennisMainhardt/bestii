@@ -11,6 +11,7 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/login" element={<Navigate to="/chat" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </ThemeProvider>

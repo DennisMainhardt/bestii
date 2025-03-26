@@ -3,7 +3,7 @@ import ChatInput from "./ChatInput";
 import ChatMessage from "./ChatMessage";
 import { Button } from "./ui/button";
 import { introPrompt, followUpPrompt, raynaIntroPrompt, raynaFollowUpPrompt } from "@/constants/prompts";
-import Header from "./Header";
+import ChatHeader from "./ChatHeader";
 import { Persona } from "@/types/persona";
 import { ChatGPTService } from "@/services/chatGPTService";
 import { ClaudeService } from "@/services/claudeService";
@@ -178,10 +178,10 @@ const Chat = () => {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background">
-      <Header onPersonaSelect={handlePersonaSelect} currentPersona={currentPersona} />
+      <ChatHeader onPersonaSelect={handlePersonaSelect} currentPersona={currentPersona} />
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-4 pt-24 sm:pt-20 pb-6 space-y-4 overscroll-contain"
+        className="flex-1 overflow-y-auto px-4 pt-20 pb-6 space-y-4 overscroll-contain w-full"
       >
         {currentChat.messages.length === 0 ? (
           <>

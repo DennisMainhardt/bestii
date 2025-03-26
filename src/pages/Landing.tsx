@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { MessageSquare, Brain, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
 import Header from "@/components/Header";
-import { Heart, Brain, Sparkles, Shield } from "lucide-react";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ const Landing = () => {
           <h2 className="text-3xl font-bold text-center mb-12">Why Choose Our AI Chatbot?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="p-6 rounded-lg bg-card border">
-              <Heart className="w-12 h-12 text-primary mb-4" />
+              <MessageSquare className="w-12 h-12 text-primary mb-4" />
               <h3 className="text-xl font-semibold mb-2">Empathetic</h3>
               <p className="text-muted-foreground">Always here to listen and support you through your journey</p>
             </div>
