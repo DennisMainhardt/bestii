@@ -23,6 +23,7 @@ export class ClaudeService {
     ];
 
     try {
+      console.log('Sending request to Claude API...');
       const response = await fetch('http://localhost:3001/api/claude', {
         method: 'POST',
         headers: {
@@ -37,12 +38,16 @@ export class ClaudeService {
         }),
       });
 
+      console.log('Claude API response status:', response.status);
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('Claude API error response:', errorText);
         throw new Error(`Claude API error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Claude API success response:', data);
 
       if (!data.content || !data.content[0] || !data.content[0].text) {
         throw new Error('Invalid response format from Claude API');
@@ -68,6 +73,7 @@ export class ClaudeService {
 
       return aiResponse;
     } catch (error) {
+      console.error('Error sending message to Claude:', error);
       if (error instanceof Error) {
         throw new Error(`Failed to get response from Claude: ${error.message}`);
       }

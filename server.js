@@ -13,6 +13,7 @@ app.use(express.json());
 
 app.post('/api/claude', async (req, res) => {
   try {
+    console.log('Received request body:', req.body);
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -31,8 +32,10 @@ app.post('/api/claude', async (req, res) => {
     });
 
     const data = await response.json();
+    console.log('Claude API response:', data);
     res.json(data);
   } catch (error) {
+    console.error('Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
