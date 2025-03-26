@@ -8,6 +8,13 @@ export default defineConfig({
     host: true,
     port: 3000,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'https://api.anthropic.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
   },
   plugins: [react()],
   resolve: {

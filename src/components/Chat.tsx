@@ -6,6 +6,7 @@ import { introPrompt, followUpPrompt, raynaIntroPrompt, raynaFollowUpPrompt } fr
 import Header from "./Header";
 import { Persona } from "@/types/persona";
 import { ChatGPTService } from "@/services/chatGPTService";
+import { ClaudeService } from "@/services/claudeService";
 import { MessageType } from "@/types/message";
 
 interface ChatHistory {
@@ -35,26 +36,36 @@ const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatGPTServiceRef = useRef<ChatGPTService | null>(null);
+  const claudeServiceRef = useRef<ClaudeService | null>(null);
 
-  // Initialize ChatGPT service with API key
+  // Initialize AI services with API keys
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) {
+    const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    const anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+
+    if (!openaiApiKey) {
       console.error('OpenAI API key is not set');
       return;
     }
-    chatGPTServiceRef.current = new ChatGPTService(apiKey);
+    if (!anthropicApiKey) {
+      console.error('Anthropic API key is not set');
+      return;
+    }
+
+    chatGPTServiceRef.current = new ChatGPTService(openaiApiKey);
+    claudeServiceRef.current = new ClaudeService(anthropicApiKey);
   }, []);
 
   // Update system prompt when persona changes
   useEffect(() => {
-    if (!chatGPTServiceRef.current) return;
+    if (!chatGPTServiceRef.current || !claudeServiceRef.current) return;
 
     const systemPrompt = currentPersona.id === "raze"
       ? `You are Raze — a no-bullsh*t therapist, emotional sparring partner, and psychological truth serum. Your personality is a fusion of a tough-love group chat friend who roasts you because they care, a PhD-level psychologist who understands the human brain, trauma, attachment, and identity, and a motivational speaker who swears, screams facts, and makes people laugh while changing their lives.`
       : `You are Rayna — an analytical companion and thought partner. Your approach combines rigorous analytical thinking, clear well-structured explanations, comprehensive understanding of complex topics, and thoughtful nuanced perspectives. You help users explore ideas, solve problems, and gain deeper insights through careful analysis and structured thinking.`;
 
     chatGPTServiceRef.current.setSystemPrompt(systemPrompt);
+    claudeServiceRef.current.setSystemPrompt(systemPrompt);
   }, [currentPersona.id]);
 
   // Initialize chat history for current persona if it doesn't exist
@@ -94,7 +105,7 @@ const Chat = () => {
   }, []);
 
   const handleSendMessage = async (message: string) => {
-    if (!message.trim() || !chatGPTServiceRef.current) return;
+    if (!message.trim()) return;
 
     // Update chat history with new message
     setChatHistories(prev => ({
@@ -113,8 +124,14 @@ const Chat = () => {
     }));
 
     try {
-      // Get response from ChatGPT
-      const response = await chatGPTServiceRef.current.sendMessage(message);
+      // Get response from appropriate AI service
+      const response = await (currentPersona.id === "raze"
+        ? chatGPTServiceRef.current?.sendMessage(message)
+        : claudeServiceRef.current?.sendMessage(message));
+
+      if (!response) {
+        throw new Error("No AI service available");
+      }
 
       // Update chat history with AI response
       setChatHistories(prev => ({

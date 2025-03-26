@@ -54,8 +54,8 @@ const ChatInput = ({ onSendMessage, isAiResponding }: ChatInputProps) => {
             onClick={handleSendMessage}
             disabled={!message.trim() || isAiResponding}
             className={`absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 p-0 rounded-full transition-all duration-200 ${message.trim()
-                ? 'bg-primary hover:bg-primary/90'
-                : 'bg-zinc-200 dark:bg-muted hover:bg-zinc-300 dark:hover:bg-muted/80'
+              ? 'bg-primary hover:bg-primary/90'
+              : 'bg-zinc-200 dark:bg-muted hover:bg-zinc-300 dark:hover:bg-muted/80'
               }`}
             aria-label="Send message"
           >

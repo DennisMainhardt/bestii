@@ -18,8 +18,8 @@ const personas: Persona[] = [
   {
     id: "rayna",
     name: "Rayna",
-    model: "ChatGPT",
-    description: "Rayna is an AI assistant powered by ChatGPT. She specializes in analytical thinking, detailed explanations, and providing comprehensive, well-structured responses."
+    model: "Claude",
+    description: "Rayna is an AI assistant powered by Claude 3.7. She specializes in analytical thinking, detailed explanations, and providing comprehensive, well-structured responses."
   }
 ];
 
