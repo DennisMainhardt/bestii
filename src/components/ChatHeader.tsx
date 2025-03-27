@@ -37,15 +37,11 @@ const ChatHeader = ({ className, onPersonaSelect, currentPersona }: ChatHeaderPr
               <ArrowLeft size={22} />
               Change Persona
             </Button>
-            <div className="w-9 h-9 rounded-full overflow-hidden shadow-sm">
+            <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm">
               <img
-                src={`/${currentPersona.id}.svg`}
-                alt={`${currentPersona.name} Profile`}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "/fallback-avatar.svg";
-                }}
+                src={`/public/${currentPersona.id}.png`}
+                alt={currentPersona.name}
+                className="w-full h-full rounded-full"
               />
             </div>
             <div className="flex flex-col">

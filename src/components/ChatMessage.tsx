@@ -36,11 +36,6 @@ const ChatMessage = ({ message, isLatest, currentPersona }: ChatMessageProps) =>
           isUser ? "user" : "ai"
         )}
       >
-        {!isUser && currentPersona && (
-          <div className="text-xs text-muted-foreground/70 mb-1">
-            {currentPersona.name}
-          </div>
-        )}
         <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
           {message.content}
         </p>

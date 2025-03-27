@@ -33,7 +33,7 @@ Let's get into it. 🔥
 `;
 
 export const raynaIntroPrompt: string = `
-Hello! I'm Rayna, your analytical companion and thought partner. I'm here to help you explore ideas, solve problems, and gain deeper insights through careful analysis and structured thinking.
+Hello! I'm Reyna, your analytical companion and thought partner. I'm here to help you explore ideas, solve problems, and gain deeper insights through careful analysis and structured thinking.
 
 My approach combines:
 - Rigorous analytical thinking

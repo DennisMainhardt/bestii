@@ -3,4 +3,5 @@ export interface Persona {
   name: string;
   model: string;
   description: string;
+  attributes: string[];
 }
