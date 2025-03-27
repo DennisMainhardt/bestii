@@ -13,6 +13,9 @@ Modern Chatbot is a web application that provides a WhatsApp-like interface for 
 - Responsive design
 - Dark/Light mode support
 - Message status indicators (sent, delivered, read)
+- User authentication
+- Google Sign-in support
+- Form validation with Zod
 
 ## Technical Stack
 
@@ -24,6 +27,7 @@ Modern Chatbot is a web application that provides a WhatsApp-like interface for 
 - React Query for data fetching
 - React Router for navigation
 - Zod for validation
+- Firebase Authentication (planned)
 
 ## Project Structure
 
@@ -40,11 +44,20 @@ src/
 
 ## Routes
 
-- `/` - Main chat interface
+- `/` - Landing page
+- `/login` - Authentication page (sign in/sign up)
+- `/chat` - Main chat interface (protected route)
 - `/settings` - User settings and preferences
 - `/history` - Chat history and past conversations
 
 ## Core Components
+
+### Authentication
+
+- `Login`: Handles user authentication (sign in/sign up)
+- `Header`: Dynamic navigation with auth-aware buttons
+- Form validation using Zod schemas
+- Google authentication integration
 
 ### Chat Interface
 
@@ -61,6 +74,26 @@ src/
 - `ResponseHandler`: Manages ChatGPT responses and error handling
 
 ## Key Functions
+
+### Authentication
+
+```typescript
+// Login form validation
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+// Sign up form validation
+const signUpSchema = loginSchema
+  .extend({
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+```
 
 ### Message Handling
 
@@ -87,6 +120,7 @@ async function handleChatGPTResponse(response: string) {
 - Chat status
 - User preferences
 - API connection state
+- Authentication state
 
 ## API Integration
 
@@ -126,44 +160,30 @@ The application integrates with the ChatGPT API to:
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js (v16 or higher)
-- npm or yarn
-- ChatGPT API key
-
-### Installation
-
 1. Clone the repository
 2. Install dependencies:
    ```bash
    npm install
    ```
-3. Set up environment variables:
+3. Start the development server:
    ```bash
-   cp .env.example .env
+   npm run dev
    ```
-4. Add your ChatGPT API key to the .env file
+4. Open [http://localhost:5173](http://localhost:5173) in your browser
 
-### Development
+## Development
 
-```bash
-npm run dev
-```
-
-### Building for Production
-
-```bash
-npm run build
-```
+- Run tests: `npm test`
+- Build for production: `npm run build`
+- Preview production build: `npm run preview`
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create your feature branch
 3. Commit your changes
 4. Push to the branch
-5. Create a Pull Request
+5. Create a new Pull Request
 
 ## License
 
