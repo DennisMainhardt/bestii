@@ -2,7 +2,9 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { signOut } from "firebase/auth";
+import { auth } from "@/firebase/firebaseConfig";
 
 interface HeaderProps {
   hideNav?: boolean;
@@ -10,13 +12,17 @@ interface HeaderProps {
 
 const Header = ({ hideNav = false }: HeaderProps) => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { currentUser } = useAuth();
 
-  useEffect(() => {
-    // Check authentication state from localStorage
-    const isAuth = localStorage.getItem("isAuthenticated") === "true";
-    setIsAuthenticated(isAuth);
-  }, []);
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      console.log('User signed out successfully');
+      navigate('/');
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
+  };
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -61,9 +67,18 @@ const Header = ({ hideNav = false }: HeaderProps) => {
         <div className="flex items-center gap-4">
           <ThemeToggle />
           {!hideNav && (
-            <Button onClick={() => navigate(isAuthenticated ? "/chat" : "/login")}>
-              {isAuthenticated ? "Chat now" : "Sign In"}
-            </Button>
+            currentUser ? (
+              <Button variant="outline" onClick={handleLogout}>
+                Logout
+              </Button>
+            ) : (
+              <Button onClick={() => navigate("/login")}>
+                Sign In
+              </Button>
+            )
+          )}
+          {currentUser && !hideNav && (
+            <span className="text-sm text-muted-foreground hidden sm:inline">{currentUser.email}</span>
           )}
         </div>
       </div>
