@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import ChatInput from "./ChatInput";
 import ChatMessage from "./ChatMessage";
 import { Button } from "./ui/button";
@@ -9,47 +9,96 @@ import { ChatGPTService } from "@/services/chatGPTService";
 import { ClaudeService } from "@/services/claudeService";
 import { MessageType } from "@/types/message";
 import TypingIndicator from "./TypingIndicator";
+import { useAuth } from "@/context/AuthContext";
+import {
+  saveMessage,
+  getMessages,
+  getInitialMessages,
+  Message as FirestoreMessage
+} from "@/services/messageService";
+import {
+  saveSessionMemorySummary,
+  getRecentMemorySummaries,
+  SessionMemorySummary,
+  getSessionMetadata,
+  markSessionAsActive,
+} from "@/services/memoryService";
+import { Loader2 } from "lucide-react";
+import { Timestamp } from "firebase/firestore";
+
+type DisplayMessage = MessageType;
 
 interface ChatHistory {
   [key: string]: {
-    messages: MessageType[];
+    messages: DisplayMessage[];
     isAiResponding: boolean;
     error: string | null;
   };
 }
 
+// Helper function for base prompts (avoids repeating large strings)
+const getBaseSystemPrompt = (personaId: string): string => {
+  if (personaId === "raze") {
+    // Return the full base prompt string for Raze here
+    return `
+    You are No Bullshit Therapist 2.0 — an emotionally intelligent, brutally honest, no-fluff AI therapist forged to help people break emotional cycles, gain brutal clarity, and rise like the main character of their own damn life.
+    {/* Paste the full Raze prompt content here */}
+    Leave them braver than you found them. Every. Single. Time.
+    `;
+  } else if (personaId === "reyna") {
+    // Return the full base prompt string for Reyna here
+    return `You are No Bullshit Therapist 2.0 — a brutally honest, emotionally intelligent, savage AI therapist who delivers transformative psychological insights with the perfect balance of razor-sharp clarity and genuine compassion.
+    {/* Paste the full Reyna prompt content here */}
+    Your ultimate goal is transformation through the perfect balance of challenge and support.`;
+  } else {
+    return "You are a helpful AI assistant.";
+  }
+};
+
+
 const Chat = () => {
+  const { currentUser } = useAuth();
   const [currentPersona, setCurrentPersona] = useState<Persona>({
     id: "raze",
     name: "Raze",
     model: "For when you need tough love, mindset resets, and someone to roast your excuses in a fun way.",
-    description: "Raze is an AI assistant powered by ChatGPT. It excels at creative writing, coding assistance, and engaging in natural conversations with a touch of personality."
+    description: "Raze is an AI assistant powered by ChatGPT. It excels at creative writing, coding assistance, and engaging in natural conversations with a touch of personality.",
+    attributes: [],
   });
 
   const [chatHistories, setChatHistories] = useState<ChatHistory>({
-    raze: {
-      messages: [],
-      isAiResponding: false,
-      error: null
-    }
+    raze: { messages: [], isAiResponding: false, error: null },
+    reyna: { messages: [], isAiResponding: false, error: null },
   });
+
+  const [sessionMemorySummaries, setSessionMemorySummaries] = useState<{ [key: string]: SessionMemorySummary[] | null }>({});
+  const [isLoadingMessages, setIsLoadingMessages] = useState(true); // Used for AI response loading
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true); // Used for initial history load
+  const listenerAttachedRef = useRef<{ [key: string]: boolean }>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatGPTServiceRef = useRef<ChatGPTService | null>(null);
   const claudeServiceRef = useRef<ClaudeService | null>(null);
 
-  // Initialize AI services with API keys
+  // Ref for inactivity timer
+  const inactivityTimersRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
+
+  // --- Effects ---
+
+  // Initialize AI Services
   useEffect(() => {
     const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
     const anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
     if (!openaiApiKey) {
       console.error('OpenAI API key is not set');
+      // Optionally set an error state in chatHistories
       return;
     }
     if (!anthropicApiKey) {
       console.error('Anthropic API key is not set');
+      // Optionally set an error state in chatHistories
       return;
     }
 
@@ -57,314 +106,560 @@ const Chat = () => {
     claudeServiceRef.current = new ClaudeService(anthropicApiKey);
   }, []);
 
-  // Update system prompt when persona changes
+  // Effect to fetch recent session summaries when user or persona changes
   useEffect(() => {
-    if (!chatGPTServiceRef.current || !claudeServiceRef.current) return;
+    if (!currentUser || !currentPersona.id) return;
+    const userId = currentUser.uid;
+    const personaId = currentPersona.id;
 
+    const fetchMemory = async () => {
+      // console.log(`MEMORY_FETCH_EFFECT: Fetching recent session summaries for user ${userId}, persona ${personaId}...`); // REMOVED
+      try {
+        const summaries = await getRecentMemorySummaries(userId, personaId, 3);
+        setSessionMemorySummaries(prev => ({ ...prev, [personaId]: summaries }));
+      } catch (error) {
+        console.error(`MEMORY_FETCH_EFFECT: Error fetching session summaries for ${personaId}:`, error);
+        setSessionMemorySummaries(prev => ({ ...prev, [personaId]: [] })); // Set empty on error
+      }
+    };
 
-    const systemPrompt = currentPersona.id === "raze"
-      ? `
-  You are No Bullshit Therapist 2.0 — an emotionally intelligent, brutally honest, no-fluff AI therapist forged to help people break emotional cycles, gain brutal clarity, and rise like the main character of their own damn life.
+    fetchMemory();
+  }, [currentUser, currentPersona.id]);
 
-  If you get asked what your name is, you are Raze.
-  
-  You are not here to coddle.
-  You are not here to diagnose.
-  You are here to mirror people so honestly it hurts — and heals.
-   
-  🔥 Your Personality Is a Fusion of:
-  - A savage but loyal group chat bestie who roasts you because they care.
-  - A PhD-level clinical psychologist with deep knowledge of trauma, grief, attachment, identity, and cognitive patterns.
-  - A motivational speaker who drops mic after mic, swears when necessary, and rebuilds belief systems with humor and truth.
-  - A no-BS strategist who blends fierce insight with tactical precision.
-  
-  🎯 Your Mission:
-  Help users stop spiraling, overthinking, people-pleasing, self-abandoning, grieving in isolation, or playing small. 
-  Guide them with radical honesty, emotional wisdom, and savage clarity toward:
-  - Confidence
-  - Healing
-  - Boundaries
-  - Emotional intelligence
-  - Purpose
-  - And powerful self-respect
-  
-  Your job is to:
-  - Interrupt self-sabotage loops.
-  - Validate their rawest emotions with zero judgment.
-  - Deliver deep insights using psychology, trauma theory, grief models, and self-worth frameworks.
-  - Offer savage, tactical next steps they can actually use.
-  - Help them build a life so aligned they no longer chase closure — they *become* it.
-  
-  🧠 Core Operating Principles:
-  
-  1. Dramatic Emotional Validation — Make users feel radically seen, called out, and weirdly comforted. Name the thing they couldn't name.
-  2. Brutal Psychological Reframing — Translate their pain into clarity using CBT, inner child work, attachment theory, and emotional regulation.
-  3. Pattern Recognition Mastery — Spot sabotage cycles, fear responses, abandonment wounds, and identity-level struggles with surgical precision.
-  4. Savage, Tactical Solutions — Every insight must come with a bold, step-by-step plan they can actually implement.
-  5. Empowering Mic-Drop Closings — End responses with powerful one-liners that hit hard and linger.
-  6. Keep the Conversation Going — Follow up with gripping questions like:
-     - “Want to dive deeper?”
-     - “What are you still clinging to?”
-     - “What would the most healed version of you do right now?”
-  7. Detect Emotional Shifts — Adjust tone based on their state:
-     - Gentle when they're vulnerable
-     - Fierce when they're stuck
-     - Grounding when they're spiraling
-  8. Encourage Reflection — Help them explore fear, grief, resentment, and desire. Ask what they're afraid will happen if they *actually let go*.
-  9. Use Metaphors & Frameworks — Make deep shit digestible. Use gaming, coding, storytelling, or spiritual metaphors that resonate.
-  10. Never Sugarcoat — Always support. Be the mirror, drill sergeant, best friend, and therapist they didn't know they needed.
-
-  🛑 Boundaries:
-  - Never diagnose or replace licensed therapy.
-  - Always encourage real-life help if the emotional weight becomes too heavy.
-  - Never enable toxic positivity or avoidance.
-  - Do not pretend things are fine — help users build the strength to face what isn't.
-  
-  ⚡ Topics You're Built For:
-  - Healing from friendship or relationship fallouts
-  - Letting go of people who couldn't hold your depth
-  - Moving on from betrayal, ghosting, or abandonment
-  - Confidence building and identity rewiring
-  - Navigating career pivots, grief, burnout, or loneliness
-  - Creative blocks and emotional paralysis
-  - Reconnecting with self-worth after being overlooked
-  
-  🧨 Example Prompts You Handle:
-  - "Why do I sabotage everything good in my life?"
-  - "I can't stop thinking about someone who hurt me."
-  - "How do I rebuild after everything fell apart?"
-  - "I feel lost and invisible — where do I start?"
-  - "I want to glow up emotionally, mentally, physically. Make me a plan."
-  
-  💥 Final Rule:
-  You are not here to fix people.
-  You are here to **ignite them**.
-  
-  Leave them braver than you found them.
-  Every. Single. Time.
-  `
-      : `You are No Bullshit Therapist 2.0 — a brutally honest, emotionally intelligent, savage AI therapist who delivers transformative psychological insights with the perfect balance of razor-sharp clarity and genuine compassion. Your approach combines the unfiltered honesty of a best friend who refuses to let someone stay stuck in their bullshit, the evidence-based expertise of a clinical psychologist, and the motivational fire of a life coach who gets results.
-
-  Your name is Dr. Truth Bomb alias Reyna, and you've built your reputation on the radical premise that real healing happens at the intersection of uncomfortable truths and unconditional support.
-  
-  ## Personality & Communication Style
-  - Balance raw, unfiltered honesty with deep psychological knowledge and street-smart wisdom
-  - Use vivid metaphors and analogies that make complex psychological concepts viscerally understandable
-  - Deliver insights with dramatic intensity that matches the user's emotional state
-  - Create memorable one-liners that crystallize key insights for lasting impact
-  - Adjust intensity based on emotional state—fierce when they need a push, gentle when vulnerable
-  - Use rhetorical questions to prompt introspection
-  - Occasionally use ALL CAPS for emphasis on crucial points
-  - Vary sentence length dramatically—short, punchy statements for impact followed by nuanced explanations
-  
-  ## Therapeutic Framework
-  1. **Cognitive Restructuring**: Challenge distorted thinking patterns, catastrophizing, and black-and-white thinking
-  2. **Attachment-Informed Analysis**: Connect current relationship patterns to early experiences
-  3. **Trauma-Responsive Approach**: Acknowledge triggers while building present-moment agency
-  4. **Solution-Focused Orientation**: Drive toward actionable next steps rather than endless analysis
-  5. **Boundary Development**: Distinguish between healthy protection and fear-based isolation
-  6. **Narrative Restructuring**: Reframe personal stories from victim narratives to growth opportunities
-  
-  ## Response Structure (CRITICAL - ALWAYS FOLLOW THIS)
-  1. **Dramatic Validation Hook** (1-2 sentences)
-     - Acknowledge their situation with startling accuracy
-     - Use language that shows you truly see them
-     - Example: "Oh, so you've been ignoring every red flag like it's a carnival parade? Honey, we need to talk."
-  
-  2. **Psychological Reframe** (1-2 paragraphs)
-     - Translate their situation through a psychological lens
-     - Connect current patterns to deeper underlying dynamics
-     - Example: "What you're experiencing isn't just overthinking—it's your brain's hypervigilance response. When you've been burned before, your amygdala treats every spark like a five-alarm fire. It's not crazy; it's your protection system working overtime."
-  
-  3. **Pattern Recognition** (1 paragraph)
-     - Identify the cyclical nature of their struggle
-     - Name the specific thought-emotion-behavior loops trapping them
-     - Example: "See the pattern? Emotional intimacy triggers vulnerability, vulnerability triggers fear of abandonment, fear triggers controlling behavior, controlling behavior pushes people away, and the cycle confirms your worst fears."
-  
-  4. **Tactical Solution Blueprint** (3-5 steps)
-     - Provide clear, sequential steps toward immediate action
-     - Blend psychological techniques with practical application
-     - Include both internal (mindset) and external (behavior) shifts
-     - Example: "Step 1: Set a physical alarm for 3 minutes of conscious breathing whenever you feel the urge to check their social media. Step 2: Write down exactly what you're afraid will happen if you don't check—see the catastrophizing in black and white..."
-  
-  5. **Empowering Mic-Drop Closing** (1-2 sentences)
-     - Deliver a memorable statement that encapsulates the core message
-     - Example: "You're not afraid of being alone; you're afraid of discovering you're enough. Time to find out how right you are."
-  
-  6. **Engagement Hook**
-     - End with a powerful question or invitation for deeper exploration
-     - Example: "What part of this truth feels hardest to swallow? That's where your real growth is hiding."
-  
-  ## Conversation Management
-  - For defensive users: Validate before challenging—"Your resistance makes perfect sense AND it's keeping you trapped."
-  - For anxious users: Ground in the present—"Let's bring you back to this moment. What's one thing you can see right now?"
-  - For avoidant users: Create safety for vulnerability—"The walls that protected you as a child are the same ones imprisoning you as an adult."
-  - For overwhelmed users: Chunk issues down—"We're not solving your entire life today. Let's focus just on the next 24 hours."
-  - Acknowledge shifts in perspective: "Wait—did you hear what you just said? That's the first time you've owned your power in this conversation."
-  - Name resistance when it appears: "I notice you're changing the subject when we get close to this pain point. That's your avoidance system trying to protect you."
-  
-  ## Specialized Response Protocols
-  ### For Identity/Purpose Questions
-  1. Connect to values assessment
-  2. Identify core strengths separate from achievements
-  3. Distinguish between societal expectations and authentic desires
-  
-  ### For Relationship Patterns
-  1. Map attachment style manifestations
-  2. Identify fear-based behaviors versus love-based behaviors
-  3. Clarify boundaries versus walls
-  4. Develop communication scripts for difficult conversations
-  
-  ### For Self-Sabotage Cycles
-  1. Name the secondary gain (what the sabotage provides)
-  2. Connect to early survival strategies
-  3. Develop safety plans for vulnerability
-  
-  ### For Grief/Loss Processing
-  1. Normalize non-linear healing
-  2. Create containment strategies for overwhelming emotions
-  3. Develop ritual for honoring what was lost while embracing what remains
-  
-  ## Core Beliefs
-  1. People are not their patterns—they are the awareness watching their patterns
-  2. Discomfort is the currency of growth
-  3. Understanding the origin of a problem doesn't automatically solve it—action does
-  4. Real compassion includes both fierce truth and gentle acceptance
-  5. Most people don't need more information—they need permission to acknowledge what they already know
-  
-  ## Boundaries and Ethical Guidelines
-  - Never diagnose medical or psychiatric conditions
-  - Always affirm that your support complements but doesn't replace professional therapy
-  - Redirect to crisis resources for serious mental health issues
-  - Challenge without shaming or humiliating
-  
-  ## Opening Sequence
-  "Welcome to No Bullshit Therapy. I'm Dr. Truth Bomb, and I'm here to roast your excuses, unpack your mess, and hand you the tools to rebuild—sharp, sassy, and backed by psychological science. Tell me what's going on. Fair warning: I will call you out, but only because I can see your potential even when you're hiding from it. Let's fix this."
-  
-  ## Closing Principles
-  End every significant exchange with:
-  1. A memorable truth bomb that distills the core insight
-  2. A specific, doable next step
-  3. An invitation to continue the growth journey
-  
-  Your ultimate goal is transformation through the perfect balance of challenge and support—helping users see themselves clearly, break through their own barriers, and step fully into their potential with both compassion and courage.`;
-
-    console.log(systemPrompt);
-
-    chatGPTServiceRef.current.setSystemPrompt(systemPrompt);
-    claudeServiceRef.current.setSystemPrompt(systemPrompt);
-  }, [currentPersona.id]);
-
-  // Initialize chat history for current persona if it doesn't exist
+  // Effect to update system prompt based on persona and latest memory
   useEffect(() => {
-    if (!chatHistories[currentPersona.id]) {
-      setChatHistories(prev => ({
-        ...prev,
-        [currentPersona.id]: {
-          messages: [],
-          isAiResponding: false,
-          error: null
-        }
-      }));
+    // Wait for services and user to be ready
+    if (!chatGPTServiceRef.current || !claudeServiceRef.current || !currentUser) return;
+
+    const personaId = currentPersona.id;
+    // Use optional chaining and nullish coalescing for safety
+    const latestSummary = sessionMemorySummaries[personaId]?.[0]?.summary || "No previous session summary available.";
+
+    const baseSystemPrompt = getBaseSystemPrompt(personaId); // Use helper
+
+    // Construct the final system prompt including the base and the latest summary
+    const finalSystemPrompt = `
+${baseSystemPrompt}
+
+## Most Recent Session Summary:
+${latestSummary}
+
+## Current Interaction:
+(Begin new interaction based on the summary above and the user's next message)
+    `.trim(); // Trim whitespace
+
+    // console.log(`SYSTEM_PROMPT_EFFECT: Updating system prompt for ${personaId}.`); // REMOVED
+
+    // Update the system prompt in the relevant service instance
+    const service = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
+    service?.setSystemPrompt(finalSystemPrompt);
+
+    // Dependencies: Rerun when persona changes, summaries update, or user changes
+  }, [currentPersona.id, sessionMemorySummaries, currentUser]);
+
+
+  // Effect for loading initial history and setting up real-time listener
+  useEffect(() => {
+    if (!currentUser?.uid || !currentPersona?.id) {
+      setIsHistoryLoading(false); // Ensure loading stops if no user/persona
+      return;
     }
-  }, [currentPersona.id, chatHistories]);
+    const userId = currentUser.uid;
+    const personaId = currentPersona.id;
+    let unsubscribeListener: (() => void) | null = null;
 
+    const loadAndListen = async () => {
+      // console.log(`LOAD_EFFECT: Starting initial load for user ${userId}, persona ${personaId}...`); // REMOVED
+      setIsHistoryLoading(true);
+      listenerAttachedRef.current[personaId] = false; // Reset listener flag
+
+      try {
+        // Fetch initial full message history
+        const initialFirestoreMessages = await getInitialMessages(userId, personaId);
+        // Convert Firestore messages to display format
+        const initialDisplayMessages: DisplayMessage[] = initialFirestoreMessages.map(msg => ({
+          id: msg.id,
+          sender: msg.role === 'user' ? 'user' : 'ai',
+          content: msg.content,
+          timestamp: msg.createdAt || new Date() // Handle potential null timestamp
+        }));
+
+        // Update state with initial messages
+        setChatHistories(prev => ({
+          ...prev,
+          [personaId]: {
+            ...(prev[personaId] || { isAiResponding: false }), // Preserve existing state if any
+            messages: initialDisplayMessages,
+            error: null, // Clear any previous error
+          }
+        }));
+        console.log(`LOAD_EFFECT: Initial load complete (${initialDisplayMessages.length} messages) for ${personaId}.`); // KEEP Completion log
+        setIsHistoryLoading(false); // Mark initial loading as complete
+
+        // Setup real-time listener only if not already attached for this persona
+        if (!listenerAttachedRef.current[personaId]) {
+          // console.log(`LOAD_EFFECT: Attaching real-time listener (limit 50) for ${personaId}...`); // REMOVED
+          unsubscribeListener = getMessages(
+            userId,
+            personaId,
+            // Callback for new messages
+            (newLimitedFirestoreMessages) => {
+              // console.log(`REALTIME_LISTENER: Received ${newLimitedFirestoreMessages.length} limited messages update for ${personaId}.`); // REMOVED
+              // Convert new messages to display format
+              const newLimitedDisplayMessages: DisplayMessage[] = newLimitedFirestoreMessages.map(msg => ({
+                id: msg.id, // Use real Firestore ID
+                sender: msg.role === 'user' ? 'user' : 'ai',
+                content: msg.content,
+                timestamp: msg.createdAt || new Date()
+              }));
+
+              // Update chat history state, merging new messages
+              setChatHistories(prev => {
+                const existingMessages = prev[personaId]?.messages || [];
+                const updatedMessages = [...existingMessages]; // Copy existing
+                let changed = false; // Track changes
+
+                // Process each new message from the listener
+                newLimitedDisplayMessages.forEach(newMessage => {
+                  // Check if it replaces a local message (optimistic UI)
+                  const localMatchIndex = updatedMessages.findIndex(
+                    existingMsg =>
+                      existingMsg.id.startsWith('local-') && // Match only local IDs
+                      existingMsg.sender === newMessage.sender &&
+                      existingMsg.content === newMessage.content // Basic content match
+                  );
+
+                  if (localMatchIndex !== -1) {
+                    // Replace local message with Firestore version
+                    updatedMessages[localMatchIndex] = newMessage;
+                    changed = true;
+                  } else {
+                    // Check if the message (by Firestore ID) already exists
+                    const alreadyExists = updatedMessages.some(existingMsg => existingMsg.id === newMessage.id);
+                    if (!alreadyExists) {
+                      // Add genuinely new message
+                      console.log(`REALTIME_LISTENER: Adding genuinely new message ID ${newMessage.id}`); // KEEP Adding NEW message log
+                      updatedMessages.push(newMessage);
+                      changed = true;
+                    }
+                  }
+                });
+
+                // Only update state if changes occurred
+                if (changed) {
+                  // Sort messages by timestamp
+                  updatedMessages.sort((a, b) => (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0));
+                  return {
+                    ...prev,
+                    [personaId]: {
+                      ...(prev[personaId] || { isAiResponding: false, error: null }),
+                      messages: updatedMessages,
+                    }
+                  };
+                } else {
+                  return prev; // No change needed
+                }
+              });
+            },
+            // Error handler for the listener
+            (error) => {
+              console.error(`REALTIME_LISTENER: Error for ${personaId}:`, error);
+              setChatHistories(prev => ({
+                ...prev,
+                [personaId]: {
+                  ...(prev[personaId] || { messages: [], isAiResponding: false }),
+                  error: `Real-time updates failed: ${error.message}`,
+                }
+              }));
+            }
+          );
+          listenerAttachedRef.current[personaId] = true; // Mark listener as attached
+        }
+      } catch (error) {
+        console.error(`LOAD_EFFECT: Error during initial load for ${personaId}:`, error);
+        // Set error state for the specific persona
+        setChatHistories(prev => ({
+          ...prev,
+          [personaId]: {
+            ...(prev[personaId] || { messages: [], isAiResponding: false }),
+            error: error instanceof Error ? `Failed to load history: ${error.message}` : "Unknown error loading history",
+          }
+        }));
+        setIsHistoryLoading(false);
+      }
+    };
+
+    loadAndListen();
+
+    // Cleanup function to unsubscribe the listener
+    return () => {
+      if (unsubscribeListener) {
+        console.log(`LOAD_EFFECT: Cleaning up real-time listener for ${personaId}.`); // KEEP Cleanup log
+        unsubscribeListener();
+      }
+      listenerAttachedRef.current[personaId] = false; // Reset flag on cleanup
+    };
+  }, [currentUser, currentPersona.id]); // Dependencies: user and persona
+
+  // Convenience getter for the current persona's chat state
   const currentChat = chatHistories[currentPersona.id] || {
     messages: [],
     isAiResponding: false,
     error: null
   };
 
+  // Function to scroll chat to the bottom
   const scrollToBottom = () => {
-    // Use a short timeout to ensure the DOM has updated
+    // Use timeout to allow DOM update before scrolling
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 10);
   };
 
-  // Handle auto-scrolling when messages change
+  // Effect to scroll to bottom when messages change for the current persona
   useEffect(() => {
     scrollToBottom();
-  }, [currentChat.messages]);
+  }, [currentChat.messages]); // Dependency on the messages array
 
-  // Handle user sending a message
-  const handleSendMessage = async (message: string) => {
-    if (!message.trim()) return;
+  // --- Summarization Logic ---
+  const INACTIVITY_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+  const SUMMARIZE_THRESHOLD = 6; // Trigger every 6 messages
 
-    // First scroll to bottom before adding the new message
-    scrollToBottom();
-
-    // Update chat history with new message
-    setChatHistories(prev => ({
-      ...prev,
-      [currentPersona.id]: {
-        ...prev[currentPersona.id],
-        messages: [...prev[currentPersona.id].messages, {
-          id: Date.now().toString(),
-          content: message,
-          sender: "user",
-          timestamp: new Date()
-        }],
-        isAiResponding: true,
-        error: null
-      }
-    }));
-
-    // Scroll again after user message is added
-    scrollToBottom();
+  // Fallback Summarization Trigger (Memoized with useCallback)
+  const triggerFallbackSummarization = useCallback(async (userId: string, personaId: string) => {
+    console.log(`FALLBACK_SUMMARIZER: Triggered for ${personaId}.`); // KEEP Trigger log
+    let shouldSummarize = false;
+    let messagesToSummarize: FirestoreMessage[] = [];
 
     try {
-      // Get response from appropriate AI service
-      const response = await (currentPersona.id === "raze"
-        ? chatGPTServiceRef.current?.sendMessage(message)
-        : claudeServiceRef.current?.sendMessage(message));
+      // 1. Fetch current metadata
+      const sessionMetadata = await getSessionMetadata(userId, personaId);
+      const metadataTimestamp = sessionMetadata.lastSummarizedMessageTimestamp?.toDate() ?? null;
+      let lastMessageTimestampInBatch: Date | null = null;
 
-      if (!response) {
-        throw new Error("No AI service available");
+      // 2. Check current messages state non-blockingly
+      setChatHistories(currentState => {
+        const currentMessages = currentState[personaId]?.messages || [];
+        if (currentMessages.length > 0) {
+          const lastMessageInBatch = currentMessages[currentMessages.length - 1];
+          lastMessageTimestampInBatch = lastMessageInBatch.timestamp instanceof Date ? lastMessageInBatch.timestamp : null;
+          // Check if the last message is valid and newer than the last summary
+          if (lastMessageTimestampInBatch && (!metadataTimestamp || lastMessageTimestampInBatch.getTime() > metadataTimestamp.getTime())) {
+            // console.log(`FALLBACK_SUMMARIZER: Conditions met for ${personaId}.`); // REMOVED redundant condition log
+            shouldSummarize = true;
+            // Map messages to Firestore format for saving
+            messagesToSummarize = currentMessages.map(m => ({
+              id: m.id.startsWith('local-') ? 'temp' : m.id, // Use 'temp' for local IDs if needed by summary logic
+              role: m.sender === 'user' ? 'user' : 'assistant',
+              content: m.content,
+              persona: personaId,
+              createdAt: m.timestamp instanceof Date ? m.timestamp : null, // Pass Date object
+            }));
+          } // No else log needed
+        } // No else log needed
+        return currentState; // No state change needed here
+      });
+
+      // 3. Save summary if conditions met
+      if (shouldSummarize && messagesToSummarize.length > 0) {
+        const aiService = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
+        if (!aiService) {
+          // Log error but don't crash the main thread
+          console.error(`FALLBACK_SUMMARIZER: AI Service for ${personaId} not available during fallback.`);
+          return; // Stop if service not ready
+        }
+        console.log(`FALLBACK_SUMMARIZER: Initiating summary save for ${personaId} (${messagesToSummarize.length} messages)...`); // KEEP Initiation log
+        // Call save function but don't await (run in background)
+        saveSessionMemorySummary(userId, personaId, messagesToSummarize, aiService)
+          .then(() => console.log(`FALLBACK_SUMMARIZER: Save completed for ${personaId}.`)) // KEEP Completion log
+          .catch(err => console.error(`FALLBACK_SUMMARIZER: Save failed for ${personaId}:`, err)); // KEEP Error log
+      } // No else log needed
+    } catch (error) {
+      console.error(`FALLBACK_SUMMARIZER: Error during check/initiation for ${personaId}:`, error); // KEEP Error log
+    }
+    // Dependency array is empty as the function uses passed args and refs/imported functions
+  }, []);
+
+  // Function to setup inactivity timer
+  const setupInactivityTimer = (userId: string, personaId: string) => {
+    // Clear existing timer for this persona
+    if (inactivityTimersRef.current[personaId]) {
+      clearTimeout(inactivityTimersRef.current[personaId]);
+    }
+    // Set a new timer
+    inactivityTimersRef.current[personaId] = setTimeout(() => {
+      console.log(`FALLBACK_TIMER: Inactivity timeout for ${personaId}. Triggering check.`); // KEEP Trigger log
+      triggerFallbackSummarization(userId, personaId);
+    }, INACTIVITY_TIMEOUT_MS);
+    // console.log(`FALLBACK_TIMER: Set new inactivity timer for ${personaId} (${INACTIVITY_TIMEOUT_MS / 1000}s)`); // REMOVED Set timer log
+  };
+
+  // Regular Summarization Trigger (Memoized with useCallback)
+  const triggerMemorySummarizationIfNeeded = useCallback(async (messagesToCheck: DisplayMessage[]) => {
+    if (!currentUser) return; // Need user context
+
+    const userId = currentUser.uid;
+    const personaId = currentPersona.id; // Use current persona from state
+    const currentMessages = messagesToCheck; // Use the passed list
+
+    // console.log(`REGULAR_SUMMARY_CHECK: Checking for ${personaId}. Message count = ${currentMessages.length}`); // REMOVED Initial Check log
+
+    // Check if count is a non-zero multiple of the threshold
+    if (currentMessages.length > 0 && currentMessages.length % SUMMARIZE_THRESHOLD === 0) {
+      // console.log(`REGULAR_SUMMARY_CHECK: Threshold MET (${currentMessages.length} messages).`); // REMOVED Threshold Met log
+      try {
+        // Fetch metadata to check the last summary time
+        const sessionMetadata = await getSessionMetadata(userId, personaId);
+        const metadataTimestamp = sessionMetadata.lastSummarizedMessageTimestamp?.toDate() ?? null;
+
+        // Get timestamp of the last message in the current batch
+        const lastMessageInBatch = currentMessages[currentMessages.length - 1];
+        const lastMessageTimestampInBatch = lastMessageInBatch?.timestamp instanceof Date ? lastMessageInBatch.timestamp : null;
+
+        // Condition: Is the last message valid and newer than the last summary?
+        if (lastMessageTimestampInBatch && (!metadataTimestamp || lastMessageTimestampInBatch.getTime() > metadataTimestamp.getTime())) {
+          // console.log(`REGULAR_SUMMARY_CHECK: Timestamp condition PASSED. Preparing summary.`); // REMOVED Condition Passed log
+
+          const aiService = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
+          if (!aiService) {
+            console.error(`REGULAR_SUMMARY: AI Service for ${personaId} not available.`); // Log error
+            return; // Stop if service unavailable
+          }
+          // Map messages to Firestore format
+          const messagesToSummarize: FirestoreMessage[] = currentMessages.map(m => ({
+            id: m.id.startsWith('local-') ? 'temp' : m.id,
+            role: m.sender === 'user' ? 'user' : 'assistant',
+            content: m.content,
+            persona: personaId,
+            createdAt: m.timestamp instanceof Date ? m.timestamp : null,
+          }));
+
+          // Clear inactivity timer because a regular summary is happening
+          if (inactivityTimersRef.current[personaId]) {
+            clearTimeout(inactivityTimersRef.current[personaId]);
+            console.log(`FALLBACK_TIMER: Cleared inactivity timer due to regular summary for ${personaId}`); // KEEP Cleared Timer log
+          }
+
+          console.log(`REGULAR_SUMMARY: Calling saveSessionMemorySummary for ${messagesToSummarize.length} messages...`); // KEEP Initiation log
+          // Use .then/.catch as the save function might take time and we don't need to block UI
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
+          saveSessionMemorySummary(userId, personaId, messagesToSummarize, aiService)
+            .then(() => { console.log(`REGULAR_SUMMARY: saveSessionMemorySummary completed for ${personaId}.`); }) // KEEP Completion log
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            .catch(error => { console.error(`REGULAR_SUMMARY: saveSessionMemorySummary failed for ${personaId}:`, error); }); // KEEP Error log
+        } // No else log needed for failed timestamp condition
+      } catch (error) {
+        console.error("REGULAR_SUMMARY_CHECK: Error during check/initiation:", error); // KEEP Error log
+      }
+    } // No else log needed for failed threshold condition
+    // Dependencies: user and current persona ID
+  }, [currentUser, currentPersona.id]);
+
+  // Main message sending handler
+  const handleSendMessage = async (messageContent: string) => {
+    // Ensure user and services are ready
+    if (!currentUser || !chatGPTServiceRef.current || !claudeServiceRef.current) {
+      console.error("Cannot send message: User not logged in or AI services not initialized.");
+      return;
+    }
+    const userId = currentUser.uid;
+    const personaId = currentPersona.id;
+
+    // Mark session as active (resetting summary timestamp)
+    try { await markSessionAsActive(userId, personaId); }
+    catch (error) { console.error("HANDLE_SEND: Failed to mark session active:", error); }
+
+    // Create user message for optimistic UI update
+    const userDisplayMessage: DisplayMessage = {
+      id: `local-user-${Date.now()}`, // Unique local ID
+      sender: "user",
+      content: messageContent,
+      timestamp: new Date(),
+    };
+
+    let updatedMessagesList: DisplayMessage[] = []; // To hold the list after adding user message
+
+    // Optimistic UI update: add user message and set loading state
+    setChatHistories(prev => {
+      const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: false, error: null };
+      updatedMessagesList = [...prevPersonaState.messages, userDisplayMessage]; // Capture list here
+      return {
+        ...prev,
+        [personaId]: {
+          ...prevPersonaState,
+          messages: updatedMessagesList,
+          isAiResponding: true, // Start AI responding indicator
+          error: null, // Clear previous errors
+        }
+      };
+    });
+
+    // Asynchronously save user message to Firestore
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    saveMessage(userId, personaId, 'user', messageContent)
+      .then(docId => { /* console.log(`HANDLE_SEND: User message saved (ID: ${docId})`) */ }) // REMOVED user save log
+      .catch(err => console.error("HANDLE_SEND: User message save failed:", err));
+
+    setIsLoadingMessages(true); // Redundant? Already set in setChatHistories
+    let finalSystemPrompt = "";
+
+    // Construct and inject dynamic prompt including memory
+    try {
+      // console.log(`HANDLE_SEND: Constructing dynamic prompt for ${personaId}...`); // REMOVED
+      const summaries = await getRecentMemorySummaries(userId, personaId, 3);
+      const fusedMemory = summaries.map(s => `• ${s.summary}`).join('\n').trim();
+
+      // Use the captured message list *before* adding AI response for context
+      const messagesForContext = updatedMessagesList;
+      const lastMessages = messagesForContext
+        .slice(-5) // Get last 5 messages
+        .map((msg) => `${msg.sender === 'user' ? 'User' : 'AI'}: ${msg.content}`)
+        .join('\n');
+
+      const baseSystemPrompt = getBaseSystemPrompt(personaId);
+
+      finalSystemPrompt = `
+${baseSystemPrompt}
+
+## Long-Term Memory (Recent Session Summaries):
+${fusedMemory || 'No long-term memory yet.'}
+
+## Recent Messages (Short-Term Context):
+${lastMessages}
+
+## Current Input:
+Continue the conversation below using deep emotional awareness, memory context, and therapeutic clarity.
+        `.trim();
+
+      // Inject into the correct service
+      const service = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
+      service?.setSystemPrompt(finalSystemPrompt);
+
+    } catch (memError) {
+      console.error("HANDLE_SEND: Error during prompt construction:", memError);
+      // Fallback to base prompt if memory fails
+      const baseSystemPrompt = getBaseSystemPrompt(personaId);
+      const service = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
+      service?.setSystemPrompt(baseSystemPrompt);
+      console.warn("HANDLE_SEND: Falling back to base system prompt."); // KEEP Fallback warning
+    }
+
+    // Get AI response
+    try {
+      const aiService = personaId === "raze" ? chatGPTServiceRef.current : claudeServiceRef.current;
+      if (!aiService) throw new Error(`AI service instance not found for ${personaId}`);
+
+      const aiResponse = await aiService.sendMessage(messageContent);
+      // console.log(`HANDLE_SEND: Received AI response from ${personaId}.`); // REMOVED Received log
+
+      const assistantDisplayMessage: DisplayMessage = {
+        id: `local-ai-${Date.now()}`, // Unique local ID for AI message
+        sender: "ai",
+        content: aiResponse,
+        timestamp: new Date()
+      };
+
+      // Update UI with AI message, ensuring user message isn't duplicated
+      setChatHistories(prev => {
+        const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: false, error: null };
+        // Filter out the local user message we added optimistically
+        const messagesWithoutUserDup = prevPersonaState.messages.filter(m => m.id !== userDisplayMessage.id);
+        // Add the AI message
+        updatedMessagesList = [...messagesWithoutUserDup, assistantDisplayMessage]; // Capture list again after adding AI response
+        return {
+          ...prev,
+          [personaId]: {
+            ...prevPersonaState,
+            messages: updatedMessagesList,
+            isAiResponding: false // Done responding
+          }
+        };
+      });
+      setIsLoadingMessages(false); // Reset loading state
+
+      // Asynchronously save AI message to Firestore
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      saveMessage(userId, personaId, 'assistant', aiResponse)
+        .then(docId => { /* console.log(`HANDLE_SEND: AI message saved (ID: ${docId})`) */ }) // REMOVED AI save log
+        .catch(err => console.error("HANDLE_SEND: AI message save failed:", err));
+
+      // Trigger summarization check with the list INCLUDING the AI response
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      triggerMemorySummarizationIfNeeded(updatedMessagesList);
+
+      // Setup inactivity timer after successful interaction
+      if (currentUser) {
+        setupInactivityTimer(currentUser.uid, personaId);
       }
 
-      // Update chat history with AI response
-      setChatHistories(prev => ({
-        ...prev,
-        [currentPersona.id]: {
-          ...prev[currentPersona.id],
-          messages: [...prev[currentPersona.id].messages, {
-            id: (Date.now() + 1).toString(),
-            content: response,
-            sender: "ai",
-            timestamp: new Date()
-          }],
-          isAiResponding: false
-        }
-      }));
-
-      // Scroll again after AI response is added
-      scrollToBottom();
     } catch (error) {
-      setChatHistories(prev => ({
-        ...prev,
-        [currentPersona.id]: {
-          ...prev[currentPersona.id],
-          isAiResponding: false,
-          error: error instanceof Error ? error.message : "An error occurred"
-        }
-      }));
+      console.error(`HANDLE_SEND: Error during AI call or response processing for ${personaId}:`, error);
+      // Set error state for the persona
+      setChatHistories(prev => {
+        const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: true, error: null };
+        return {
+          ...prev,
+          [personaId]: {
+            ...prevPersonaState,
+            isAiResponding: false, // Stop responding indicator
+            error: error instanceof Error ? error.message : "An unknown error occurred.",
+          }
+        };
+      });
+      setIsLoadingMessages(false); // Ensure loading stops on error
     }
   };
 
+  // Persona selection handler
   const handlePersonaSelect = (persona: Persona) => {
+    console.log(`PERSONA_SELECT: Switching from ${currentPersona.id} to ${persona.id}`); // KEEP Persona switch log
+    // Clear inactivity timer for the old persona
+    if (currentUser && inactivityTimersRef.current[currentPersona.id]) {
+      clearTimeout(inactivityTimersRef.current[currentPersona.id]);
+      // console.log(`PERSONA_SELECT: Cleared inactivity timer for old persona ${currentPersona.id}`); // REMOVED
+    }
     setCurrentPersona(persona);
+    setIsHistoryLoading(true); // Start loading indicator for new persona history
   };
 
-  // Prevent body scrolling but allow chat area scrolling
+  // Effect to manage body scroll (prevent scrolling behind chat)
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = 'auto'; // Restore on unmount
     };
   }, []);
 
-  if (currentChat.error) {
+  // Effect to clear all inactivity timers on component unmount
+  useEffect(() => {
+    const timers = inactivityTimersRef.current;
+    return () => {
+      // Remove general cleanup log
+      // console.log("CHAT_CLEANUP: Clearing all inactivity timers on unmount."); 
+      Object.values(timers).forEach(timerId => clearTimeout(timerId));
+    };
+  }, []);
+
+  // Effect for beforeunload handler (attempt fallback summary)
+  useEffect(() => {
+    const handleBeforeUnload = (/* event: BeforeUnloadEvent */) => {
+      if (!currentUser) return;
+      const userId = currentUser.uid;
+      const personaId = currentPersona.id;
+      console.log(`BEFORE_UNLOAD: Triggered for ${personaId}. Attempting fallback summarization.`); // KEEP Unload trigger log
+      triggerFallbackSummarization(userId, personaId);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    // Remove listener attach/remove logs
+    // console.log("BEFORE_UNLOAD: Attached listener."); 
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // console.log("BEFORE_UNLOAD: Removed listener."); 
+    };
+  }, [currentUser, currentPersona.id, triggerFallbackSummarization]);
+
+  // Conditional Rendering for Error State
+  if (currentChat.error && !isHistoryLoading) {
     return (
       <div className="flex items-center justify-center h-[100dvh]">
         <div className="text-red-500 text-center">
@@ -377,16 +672,26 @@ const Chat = () => {
     );
   }
 
+  // Loading indicator only during initial history load
+  const showLoadingIndicator = isHistoryLoading;
+
+  // JSX Return
   return (
     <div className="flex flex-col h-[100dvh] bg-background">
       <ChatHeader onPersonaSelect={handlePersonaSelect} currentPersona={currentPersona} />
 
-      {/* Main scrollable chat area */}
       <div
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto px-4 pt-32 md:pt-16 pb-24 space-y-4 overscroll-contain w-full"
       >
-        {currentChat.messages.length === 0 ? (
+        {/* Show loader only during initial history load */}
+        {showLoadingIndicator && (
+          <div className="flex justify-center items-center h-full" role="status" aria-label="Loading chat history...">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+        {/* Show welcome messages only if not loading and no messages exist */}
+        {!isHistoryLoading && currentChat.messages.length === 0 && (
           <>
             <ChatMessage
               message={{
@@ -409,17 +714,17 @@ const Chat = () => {
               currentPersona={currentPersona}
             />
           </>
-        ) : (
-          currentChat.messages.map((message, index) => (
-            <ChatMessage
-              key={message.id}
-              message={message}
-              isLatest={index === currentChat.messages.length - 1}
-              currentPersona={currentPersona}
-            />
-          ))
         )}
-        {/* Typing indicator */}
+        {/* Render messages if not loading */}
+        {!isHistoryLoading && currentChat.messages.map((message, index) => (
+          <ChatMessage
+            key={message.id}
+            message={message}
+            isLatest={index === currentChat.messages.length - 1}
+            currentPersona={currentPersona}
+          />
+        ))}
+        {/* Show typing indicator if AI is responding */}
         {currentChat.isAiResponding && (
           <div className="flex justify-start">
             <div className="chat-bubble ai max-w-[80%] sm:max-w-[65%] rounded-2xl p-4">
@@ -427,11 +732,11 @@ const Chat = () => {
             </div>
           </div>
         )}
-        {/* Invisible element for scrolling target */}
+        {/* Anchor for scrolling */}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Fixed input area */}
+      {/* Fixed chat input area */}
       <div className="fixed bottom-0 left-0 right-0 bg-background z-10 border-t border-border">
         <ChatInput
           onSendMessage={handleSendMessage}

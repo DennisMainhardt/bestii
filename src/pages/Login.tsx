@@ -17,12 +17,13 @@ import {
   sendPasswordResetEmail,
   User,
 } from "firebase/auth";
-import { auth, googleProvider } from "@/firebase/firebaseConfig";
+import { auth, googleProvider, db } from "@/firebase/firebaseConfig";
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import { Loader2 } from 'lucide-react';
 import { FieldErrors } from 'react-hook-form';
+import { doc, setDoc, serverTimestamp, getDoc, updateDoc } from "firebase/firestore";
 
 interface LoginFormData {
   email: string;
@@ -118,14 +119,16 @@ const Login = () => {
 
   const handleEmailLoginSubmit = async (data: LoginFormInputs) => {
     setIsLoading(true);
+    setError(null);
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
         data.email,
         data.password
       );
+      const user = userCredential.user;
 
-      if (!userCredential.user.emailVerified) {
+      if (!user.emailVerified) {
         console.log("Client state shows email not verified, attempting reload...");
         try {
           await userCredential.user.reload();
@@ -134,6 +137,13 @@ const Login = () => {
           if (refreshedUser?.emailVerified) {
             console.log("Email verified after reload during login attempt!");
             setIsAwaitingVerification(false);
+            try {
+              const userDocRef = doc(db, 'users', refreshedUser.uid);
+              await updateDoc(userDocRef, { lastLoginAt: serverTimestamp() });
+              console.log(`Updated lastLoginAt for user ${refreshedUser.uid}`);
+            } catch (updateError) {
+              console.error("Failed to update lastLoginAt after verification:", updateError);
+            }
             navigate("/chat");
             return;
           }
@@ -160,6 +170,14 @@ const Login = () => {
         return;
       }
 
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, { lastLoginAt: serverTimestamp() });
+        console.log(`Updated lastLoginAt for user ${user.uid}`);
+      } catch (updateError) {
+        console.error("Failed to update lastLoginAt:", updateError);
+      }
+
       setIsAwaitingVerification(false);
       navigate("/chat");
     } catch (err) {
@@ -176,23 +194,49 @@ const Login = () => {
 
   const handleSignUpSubmit = async (data: SignUpFormInputs) => {
     setIsLoading(true);
+    setError(null);
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         data.email,
         data.password
       );
+      const user = userCredential.user;
+      console.log('Auth user created:', user.uid);
+
+      try {
+        console.log(`Creating Firestore document for user ${user.uid}...`);
+        const userDocRef = doc(db, 'users', user.uid);
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.email?.split('@')[0] || `User_${user.uid.substring(0, 5)}`,
+          createdAt: serverTimestamp(),
+          providerId: 'password',
+          lastLoginAt: serverTimestamp(),
+        });
+        console.log(`Firestore document created successfully for user ${user.uid}.`);
+      } catch (firestoreError) {
+        console.error(`Failed to create Firestore document for user ${user.uid}:`, firestoreError);
+        setError(`Account created, but failed to save profile: ${firestoreError.message}`);
+        setIsLoading(false);
+        return;
+      }
 
       const actionCodeSettings = {
         url: `${window.location.origin}/finish-verification`,
         handleCodeInApp: true,
       };
 
-      await sendEmailVerification(userCredential.user, actionCodeSettings);
+      console.log(`Sending verification email to ${user.email}...`);
+      await sendEmailVerification(user, actionCodeSettings);
+      console.log(`Verification email sent.`);
+
       setShowVerificationMessage(true);
       reset();
     } catch (err) {
       const error = err as AuthError;
+      console.error("Sign up failed:", error);
       if (error.code === 'auth/email-already-in-use') {
         setError("This email address is already in use. Please sign in or use a different email.");
       } else {
@@ -209,9 +253,36 @@ const Login = () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+      const providerData = user.providerData[0];
+      console.log('Google Sign-in successful for:', user.uid, user.email);
+
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(userDocRef);
+
+        if (!docSnap.exists()) {
+          console.log(`Firestore document for user ${user.uid} does not exist. Creating...`);
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || user.email?.split('@')[0] || `User_${user.uid.substring(0, 5)}`,
+            photoURL: user.photoURL || null,
+            createdAt: serverTimestamp(),
+            providerId: providerData?.providerId || 'google.com',
+            lastLoginAt: serverTimestamp(),
+          });
+          console.log(`Firestore document created successfully for Google user ${user.uid}.`);
+        } else {
+          console.log(`Firestore document already exists for user ${user.uid}. Updating lastLoginAt...`);
+          await updateDoc(userDocRef, { lastLoginAt: serverTimestamp() });
+          console.log(`Updated lastLoginAt for user ${user.uid}`);
+        }
+      } catch (firestoreError) {
+        console.error(`Failed to check/create Firestore document for Google user ${user.uid}:`, firestoreError);
+      }
 
       if (!user.emailVerified) {
-        console.log("Still not verified after Google Sign-In, showing prompt.");
+        console.log("Google user email not verified (uncommon). Handling...");
         setError(
           <span className="flex flex-col items-center gap-2 text-center">
             <span>Your Google account email needs verification. Please check your inbox.</span>
@@ -230,9 +301,11 @@ const Login = () => {
         return;
       }
 
+      console.log("Navigating Google user to chat...");
       navigate("/chat");
     } catch (err) {
       const error = err as AuthError;
+      console.error("Google Sign-in failed:", error);
       setError(`Failed to sign in with Google: ${error.message}`);
     } finally {
       setIsLoading(false);
