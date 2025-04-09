@@ -1,0 +1,129 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for clarity and reusability
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Function to check if a field exists and is a non-empty string
+    function isNonEmptyString(fieldName) {
+      return fieldName in request.resource.data &&
+             request.resource.data[fieldName] is string &&
+             request.resource.data[fieldName].size() > 0;
+    }
+
+    // Function to check if a field is the server timestamp upon creation/update
+    function isServerTimestamp(fieldName) {
+       // Allow server timestamp on create or update
+      return request.resource.data[fieldName] == request.time;
+    }
+
+     // Function to check if a field is a timestamp or null
+    function isTimestampOrNull(fieldName) {
+      return request.resource.data[fieldName] == null || request.resource.data[fieldName] is timestamp;
+    }
+
+    // ==== User Profiles ====
+    match /users/{userId} {
+      // Allow owner to read their profile
+      allow get: if isOwner(userId);
+
+      // Allow owner to create their profile document only if it doesn't exist yet
+      // Validate required fields upon creation
+      allow create: if isOwner(userId)
+                      && isNonEmptyString('uid') && request.resource.data.uid == userId
+                      && isNonEmptyString('email')
+                      && isNonEmptyString('displayName') // Ensure display name is provided
+                      && isNonEmptyString('providerId')
+                      && isServerTimestamp('createdAt')
+                      && isServerTimestamp('lastLoginAt'); // lastLoginAt set on creation too
+
+      // Allow owner to update specific fields: displayName, photoURL, lastLoginAt (Simplified v4 - Focus on Request)
+      allow update: if isOwner(userId)
+                      // 1. Ensure incoming request ONLY contains known/allowed fields
+                      && request.resource.data.keys().hasOnly([
+                           'uid', 'email', 'providerId', 'createdAt', // Allow presence of immutable keys
+                           'displayName', 'photoURL', 'lastLoginAt' // Allow presence of mutable keys
+                         ])
+                      // 2. Ensure IMMUTABLE fields are NOT part of the actual update write operation
+                      && !('uid' in request.writeFields)
+                      && !('email' in request.writeFields)
+                      && !('providerId' in request.writeFields)
+                      && !('createdAt' in request.writeFields)
+                      // 3. Validate MUTABLE fields being written (if they are included)
+                      && (!( 'displayName' in request.writeFields ) || request.resource.data.displayName is string)
+                      && (!( 'photoURL' in request.writeFields ) || request.resource.data.photoURL == null || request.resource.data.photoURL is string)
+                      && (!( 'lastLoginAt' in request.writeFields ) || request.resource.data.lastLoginAt == request.time);
+
+      // Disallow listing all users and deleting profiles (unless implementing deletion feature)
+      allow list, delete: if false;
+    }
+
+    // ==== User Messages ====
+    // Secure messages within the user's path
+    match /users/{userId}/messages/{messageId} {
+      // Allow owner to read their messages (get and list)
+      allow read: if isOwner(userId);
+
+      // Allow owner to create new messages
+      // Validate required fields and types
+      allow create: if isOwner(userId)
+                      && isNonEmptyString('role') && request.resource.data.role in ['user', 'assistant']
+                      && isNonEmptyString('content')
+                      && isNonEmptyString('persona')
+                      && isServerTimestamp('createdAt');
+
+      // Disallow updating or deleting messages to maintain chat history integrity
+      allow update, delete: if false;
+    }
+
+    // ==== Per-Persona Summaries ====
+    // Secure summaries under the user's persona subcollection
+    match /users/{userId}/personas/{personaId}/summaries/{summaryId} {
+        // Allow owner to read their summaries
+        allow read: if isOwner(userId);
+
+        // Allow owner (application logic) to create summaries
+        // Validate required fields
+        allow create: if isOwner(userId)
+                       && isNonEmptyString('summary')
+                       && isServerTimestamp('createdAt');
+
+        // Disallow updating or deleting summaries
+        allow update, delete: if false;
+    }
+
+    // ==== Per-Persona Session Metadata ====
+    // Secure the metadata document (assuming it's a single doc, e.g., named 'metadata')
+    match /users/{userId}/personas/{personaId}/session/metadata {
+        // Allow owner to read their metadata
+        allow get: if isOwner(userId);
+
+        // Allow owner to create the metadata doc if it doesn't exist
+        // Validate initial state
+        allow create: if isOwner(userId)
+                       && isTimestampOrNull('lastSummarizedMessageTimestamp'); // Can be null initially
+
+        // Allow owner to update ONLY the lastSummarizedMessageTimestamp field (writeFields version)
+        allow update: if isOwner(userId)
+                       // 1. Ensure ONLY 'lastSummarizedMessageTimestamp' is in the update operation
+                       && request.writeFields.hasOnly(['lastSummarizedMessageTimestamp'])
+                       // 2. Validate the type of the updated field (Timestamp or Null)
+                       && (request.resource.data.lastSummarizedMessageTimestamp == null || request.resource.data.lastSummarizedMessageTimestamp is timestamp);
+
+        // Disallow listing (not applicable) and deleting
+         allow list, delete: if false;
+    }
+
+    // Add rules for any other top-level collections here if created later.
+    // By default, access to any path not explicitly matched is denied.
+
+  }
+}

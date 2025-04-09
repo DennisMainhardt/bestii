@@ -111,56 +111,57 @@ src/
 
 5.  **Configure Firebase Security Rules (Firestore) - CRUCIAL:**
 
-    - **Importance:** Default test rules are insecure. You **must** restrict database access to prevent unauthorized data access or modification.
-    - Go to your Firebase project -> Firestore Database -> Rules.
-    - Implement rules based on user authentication (`request.auth.uid`). The goal is to ensure users can only access and modify _their own_ data.
-    - **Example Structure (Review and Adapt Carefully):**
+    - **Importance:** Default test rules are insecure. You **must** restrict database access to prevent unauthorized data access or modification. These rules define _who_ can read/write _what_ data in your Firestore database.
+    - The rules for this project are located in `firestore.rules`. They aim to ensure users can only access and modify _their own_ data across profiles, messages, summaries, and metadata.
+    - Key principles implemented:
 
-      ```firestore-rules
-      rules_version = '2';
+      - Helper functions (`isAuthenticated`, `isOwner`, `isNonEmptyString`, `isServerTimestamp`, `isTimestampOrNull`) for clarity and reuse.
+      - User Profile (`/users/{userId}`): Owner `get`, `create` (with field validation), `update` (specific allowed fields, immutable fields protected). `list`, `delete` disallowed.
+      - Messages (`/users/{userId}/messages/{messageId}`): Owner `read`, `create` (with field validation). `update`, `delete` disallowed.
+      - Persona Summaries (`/users/{userId}/personas/{personaId}/summaries/{summaryId}`): Owner `read`, `create` (with validation). `update`, `delete` disallowed.
+      - Session Metadata (`/users/{userId}/personas/{personaId}/session/metadata`): Owner `get`, `create` (with validation), `update` (only `lastSummarizedMessageTimestamp` field). `list`, `delete` disallowed.
 
-      service cloud.firestore {
-        match /databases/{database}/documents {
+    - **Testing Security Rules with the Emulator Suite:**
 
-          // User Profiles: Allow users to read their own profile.
-          // Allow creation if it doesn't exist.
-          // Allow limited updates (e.g., lastLoginAt, displayName).
-          match /users/{userId} {
-            allow read, get: if request.auth != null && request.auth.uid == userId;
-            allow create: if request.auth != null && request.auth.uid == userId;
-            allow update: if request.auth != null && request.auth.uid == userId
-                           && request.resource.data.keys().hasOnly(['displayName', 'photoURL', 'lastLoginAt']);
-            allow delete: if false; // Typically disallowed unless implementing account deletion
+      - **Benefits:** Testing rules locally using the Firebase Emulator Suite is essential for catching errors before deployment. It provides a fast, isolated environment without affecting live data.
+      - **Test Files:** Unit tests for the rules are located in the `tests/` directory (`users.rules.test.ts`, `messages.rules.test.ts`, `personas.rules.test.ts`).
+      - **Framework:** Tests utilize the `@firebase/rules-unit-testing` library to simulate authenticated and unauthenticated requests against the rules loaded into the Firestore emulator. Helper functions in `tests/testUtils.ts` (like `setupFirestoreTestEnvironment`, `teardownFirestoreTestEnvironment`) manage the emulator lifecycle.
+      - **Running Tests:**
+        ```bash
+        # Ensure Firestore emulator is running (e.g., via `firebase emulators:start`)
+        # Then, in another terminal:
+        npm test
+        # Or, run tests directly against the emulator without starting it separately:
+        # firebase emulators:exec --only firestore 'npm test'
+        ```
+      - **Handling Test Intermittency (Race Conditions):**
+        - **Problem:** During development, intermittent test failures (`PERMISSION_DENIED` or `NOT_FOUND` errors) were observed, often passing on the first run but failing on subsequent runs. This was traced to race conditions caused by the interaction between Jest's test execution order and the test helper `clearFirestoreData()` being called in an `afterEach` block. Clearing _all_ data after _each_ test in one suite could interfere with the `beforeEach` setup of a test in another suite running concurrently or immediately after.
+        - **Solution:** The fix involved removing the global `afterEach(() => clearFirestoreData())` hooks from the test suites. Instead, each suite's `beforeEach` hook was modified to _explicitly delete only the specific documents_ relevant to that suite using `deleteDoc()` _before_ setting up the required test data with `setDoc()`. This ensures true test isolation and prevents cross-suite interference, leading to stable and reliable test results.
+
+    - **Deploying Security Rules:**
+      - **Method 1: Firebase CLI (Recommended):**
+        - Ensure you have the Firebase CLI installed (`npm install -g firebase-tools`) and are logged in (`firebase login`).
+        - Make sure your `firebase.json` file correctly points to your rules file. It should contain a `firestore` block like this:
+          ```json
+          {
+            "firestore": {
+              "rules": "firestore.rules"
+              // Add "indexes": "firestore.indexes.json" if managing indexes via CLI
+            }
+            // ... other configurations like emulators ...
           }
-
-          // Messages: Allow users to read and create their own messages.
-          // Disallow updates/deletes to preserve chat history integrity.
-          match /users/{userId}/messages/{messageId} {
-            allow read, create: if request.auth != null && request.auth.uid == userId;
-            allow update, delete: if false;
-            // Consider adding validation on create:
-            // allow create: if request.auth != null && request.auth.uid == userId
-            //                  && request.resource.data.userId == request.auth.uid // Ensure sender integrity if storing userId in msg
-            //                  && request.resource.data.persona is string
-            //                  && request.resource.data.role is string
-            //                  && request.resource.data.content is string
-            //                  && request.resource.data.createdAt == request.time;
-          }
-
-          // Per-Persona Data (Summaries, Metadata):
-          // Allow users full read/write access ONLY within their own user path.
-          match /users/{userId}/personas/{personaId}/{document=**} {
-            allow read, write: if request.auth != null && request.auth.uid == userId;
-            // Consider more granular rules if needed, e.g., validating summary structure.
-          }
-
-          // Add rules for any other collections you might create.
-
-        }
-      }
-      ```
-
-    - **Testing:** Use the Firestore Rules Playground in the Firebase console or the Firebase Emulator Suite to thoroughly test these rules before deploying.
+          ```
+          _(If you encounter `Cannot understand what targets to deploy` errors, check this configuration.)_
+        - From your project root, run:
+          ```bash
+          firebase deploy --only firestore:rules
+          ```
+        - **Deployment Warnings:** Pay attention to any warnings during deployment (e.g., `Unused function`, `Invalid variable name`). These often indicate unused code or potential errors that should be cleaned up in `firestore.rules`, even if the deployment succeeds. We encountered and fixed an `Unused function` warning during development.
+      - **Method 2: Manual Console Upload:**
+        - Go to your Firebase project -> Firestore Database -> Rules tab.
+        - Copy the entire content of your local `firestore.rules` file.
+        - Paste it into the editor in the console, replacing the existing rules.
+        - Click **Publish**. _(Use the Rules Playground here to test changes before publishing)_.
 
 6.  **Create Firestore Indexes:**
 
