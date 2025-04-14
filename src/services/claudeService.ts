@@ -272,14 +272,35 @@ Return everything in a single JSON object with the following structure:
           'Invalid summary response format from Claude API (missing content text)'
         );
       }
+      // Use const since it's not reassigned
       const fullContent = data.content[0].text.trim();
+
+      // --- Add Robust JSON Extraction ---
+      // Check for markdown code block fences and extract the JSON within
+      const jsonRegex = /^\s*```(?:json)?\n?([\s\S]*?)\n?```\s*$/;
+      const match = fullContent.match(jsonRegex);
+      let jsonStringToParse = '';
+      if (match && match[1]) {
+        // If regex matches, use the captured group (the inner JSON)
+        jsonStringToParse = match[1].trim();
+        console.log(
+          'ClaudeService::generateSummary - Extracted JSON content from markdown block.'
+        );
+      } else {
+        // If no markdown fences, assume the content is raw JSON (or invalid)
+        jsonStringToParse = fullContent;
+        console.log(
+          'ClaudeService::generateSummary - No markdown block detected, attempting to parse raw content.'
+        );
+      }
+      // --- End Robust JSON Extraction ---
 
       let summary = '';
       // Use the interface type, initialize to null
       let metadata: SummaryMetadata | null = null;
       try {
-        // Parse the entire content as JSON
-        const parsed = JSON.parse(fullContent) as {
+        // Parse the potentially cleaned JSON string
+        const parsed = JSON.parse(jsonStringToParse) as {
           summary?: string;
           metadata?: SummaryMetadata;
         };
@@ -287,12 +308,13 @@ Return everything in a single JSON object with the following structure:
         metadata = parsed.metadata || null;
       } catch (err) {
         console.warn(
-          'ClaudeService::generateSummary - Failed to parse unified JSON response:',
+          'ClaudeService::generateSummary - Failed to parse JSON content:',
           err
         );
+        // Log the string we *tried* to parse for debugging
         console.error(
-          'ClaudeService::generateSummary - Full content received:',
-          fullContent
+          'ClaudeService::generateSummary - Content attempted to parse:',
+          jsonStringToParse
         );
       }
 
