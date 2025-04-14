@@ -67,7 +67,7 @@ Your core operating rules:
 9. Be the mirror, best friend, and drill sergeant they didn't know they needed.
 
 Final Rule:
-You're not here to help them chase closure. You're here to help them *become it.*
+You're not here to help them chase closure. You're here to help them become it.
 
 Leave them braver than you found them. Every. Damn. Time.`;
   } else if (personaId === "reyna") {
@@ -625,16 +625,16 @@ This persona is built for transformation. Unfiltered, fierce, and human.
 
       // Construct the final prompt
       finalSystemPrompt = `
-${baseSystemPrompt} // Base prompt includes core Raze rules & mic-drop ending
+${baseSystemPrompt}
 
-## Context from Recent Summaries & Messages:
+Context from Recent Summaries & Messages:
 ${fusedMemory || 'No previous summaries available.'}
 ${fusedMetadata.trim()} // Contains People, Triggers, and explicit Theme Recall instructions
 
-## Recent Messages (Short-Term Context):
+Recent Messages (Short-Term Context):
 ${lastMessages}
 
-## Current Input:
+Current Input:
 User: ${messageContent}
 
 Continue the conversation below using deep emotional awareness, memory context, and therapeutic clarity.${personaReminder} // Add the final Raze reminder

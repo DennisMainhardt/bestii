@@ -37,7 +37,7 @@ export class ChatGPTService {
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4o-mini',
           messages: messages,
           temperature: 0.8,
           max_tokens: 2000,
