@@ -1,5 +1,13 @@
 import { MessageType } from '@/types/message';
 
+// Define the interface for the structured metadata (copied for consistency, or import if centralized)
+interface SummaryMetadata {
+  key_people: string[];
+  key_events: string[];
+  emotional_themes: string[];
+  triggers: string[];
+}
+
 export class ClaudeService {
   private apiKey: string;
   private conversationHistory: MessageType[] = [];
@@ -182,6 +190,125 @@ export class ClaudeService {
         throw new Error(`Failed to get response from Claude: ${error.message}`);
       }
       throw new Error('Failed to get response from Claude: Unknown error');
+    }
+  }
+
+  async generateSummary(
+    messagesToSummarize: { role: 'user' | 'assistant'; content: string }[]
+  ): Promise<{
+    summary: string;
+    metadata: SummaryMetadata | null;
+    tokenCount?: number;
+  }> {
+    // Construct a specific prompt for summarization - Updated for JSON output
+    const summarizationPrompt = `Analyze the following conversation for emotional and situational depth. Summarize the key emotional themes, major events, and the user's internal state or changes in perspective. Highlight:
+
+- Major events, turning points, or memories mentioned
+- Specific people involved and the user's emotional connection to them
+- Emotional triggers or recurring thoughts
+- Shifts in identity, beliefs, or mindset
+- Any statements that reflect unresolved grief, growth, or transformation
+
+Summarize in 3-6 sentences with a focus on clarity, emotional resonance, and memory retention.
+
+Conversation:
+${messagesToSummarize
+  .map((m) => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`)
+  .join('\n')}
+
+Return everything in a single JSON object with the following structure:
+
+{
+  "summary": "<full summary text here>",
+  "metadata": {
+    "key_people": [...],
+    "key_events": [...],
+    "emotional_themes": [...],
+    "triggers": [...]
+  }
+}
+`;
+
+    try {
+      console.log(
+        'ClaudeService::generateSummary - Sending request to Claude API for summary...'
+      );
+      const response = await fetch('/api/claude', {
+        // Use proxy
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-haiku-20240307', // Use Haiku for speed/cost
+          max_tokens: 800, // Increased tokens to allow for JSON structure
+          messages: [{ role: 'user', content: summarizationPrompt }], // Send only the summarization request
+          temperature: 0.3, // Low temp for factual summary
+        }),
+      });
+
+      console.log(
+        'ClaudeService::generateSummary - API response status:',
+        response.status
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('ClaudeService::generateSummary - API error:', errorText);
+        throw new Error(
+          `Claude API error during summarization: ${response.status} - ${errorText}`
+        );
+      }
+
+      const data = await response.json();
+      console.log(
+        'ClaudeService::generateSummary - API success response:',
+        data
+      );
+
+      // Expecting the content itself to be the JSON string
+      if (!data.content || !data.content[0] || !data.content[0].text) {
+        throw new Error(
+          'Invalid summary response format from Claude API (missing content text)'
+        );
+      }
+      const fullContent = data.content[0].text.trim();
+
+      let summary = '';
+      // Use the interface type, initialize to null
+      let metadata: SummaryMetadata | null = null;
+      try {
+        // Parse the entire content as JSON
+        const parsed = JSON.parse(fullContent) as {
+          summary?: string;
+          metadata?: SummaryMetadata;
+        };
+        summary = parsed.summary || '';
+        metadata = parsed.metadata || null;
+      } catch (err) {
+        console.warn(
+          'ClaudeService::generateSummary - Failed to parse unified JSON response:',
+          err
+        );
+        console.error(
+          'ClaudeService::generateSummary - Full content received:',
+          fullContent
+        );
+      }
+
+      console.log(
+        'ClaudeService::generateSummary - Summary received:',
+        summary
+      );
+      // Return object matching the Promise type
+      return { summary, metadata, tokenCount: data.usage?.output_tokens };
+    } catch (error) {
+      console.error(
+        'ClaudeService::generateSummary - Error generating summary:',
+        error
+      );
+      // Return type matches here too
+      return { summary: '', metadata: null };
     }
   }
 }

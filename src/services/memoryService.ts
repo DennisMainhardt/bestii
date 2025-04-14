@@ -33,23 +33,31 @@ async function summarizeConversation(conversation: string): Promise<string> {
 
 const db = getFirestore(app);
 
-// Structure for storing session summaries in Firestore
+// Interfaces
+export interface SessionMetadata {
+  lastSummarizedMessageTimestamp: Timestamp | null;
+}
+
+// Define the interface for the structured metadata (can be imported if defined elsewhere)
+interface SummaryMetadata {
+  key_people: string[];
+  key_events: string[];
+  emotional_themes: string[];
+  triggers: string[];
+}
+
 export interface SessionMemorySummary {
   id: string;
   summary: string;
   createdAt: Timestamp;
   messageCount: number;
   personaId: string;
-  // Add the timestamp of the *last* message included in this summary
   lastMessageTimestamp: Timestamp | null;
+  tokenCount?: number;
+  metadata?: SummaryMetadata;
 }
 
 // --- Session Metadata Management ---
-
-interface SessionMetadata {
-  lastSummarizedMessageTimestamp: Timestamp | null;
-  // Add other relevant metadata if needed in the future
-}
 
 const getSessionMetadataRef = (userId: string, personaId: string) => {
   return doc(db, `users/${userId}/personas/${personaId}/session`, 'metadata');
@@ -227,6 +235,8 @@ export const getRecentMemorySummaries = async (
           data.lastMessageTimestamp instanceof Timestamp
             ? data.lastMessageTimestamp
             : null,
+        tokenCount: data.tokenCount,
+        metadata: data.metadata as SummaryMetadata,
       });
     });
 
