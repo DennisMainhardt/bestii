@@ -160,11 +160,12 @@ Return everything in a single JSON object with the following structure:
       { role: 'user', content: summarizationPrompt },
     ];
 
-    const calculatedMaxTokens = Math.min(800, messagesToSummarize.length * 40);
+    const actualMaxTokens = 500; // Define the actual value being used
 
     try {
+      // Update log message to show the actual max_tokens value
       console.log(
-        `ChatGPTService::generateSummary - Requesting summary with ${messagesToSummarize.length} messages and max_tokens=${calculatedMaxTokens}`
+        `ChatGPTService::generateSummary - Requesting summary with ${messagesToSummarize.length} messages and max_tokens=${actualMaxTokens}`
       );
       const response = await fetch(OPENAI_API_URL, {
         method: 'POST',
@@ -173,10 +174,10 @@ Return everything in a single JSON object with the following structure:
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo', // Or another suitable model
+          model: 'gpt-4o-mini', // Or another suitable model
           messages: messages,
           temperature: 0.3, // Lower temp for factual summary
-          max_tokens: 500, // INCREASED: Allow more tokens for summary + metadata JSON
+          max_tokens: actualMaxTokens, // Use the defined value
           top_p: 1,
           frequency_penalty: 0,
           presence_penalty: 0,
@@ -205,20 +206,58 @@ Return everything in a single JSON object with the following structure:
         data
       );
 
+      // Add null check for choices array and message content
+      if (
+        !data.choices ||
+        !data.choices[0] ||
+        !data.choices[0].message ||
+        !data.choices[0].message.content
+      ) {
+        console.error(
+          'ChatGPTService::generateSummary - Invalid response structure from OpenAI API'
+        );
+        throw new Error('Invalid response structure from OpenAI API');
+      }
+
       const fullContent = data.choices[0].message.content.trim();
+
+      // --- Add Robust JSON Extraction (Same as ClaudeService) ---
+      const jsonRegex = /^\s*```(?:json)?\n?([\s\S]*?)\n?```\s*$/;
+      const match = fullContent.match(jsonRegex);
+      let jsonStringToParse = '';
+      if (match && match[1]) {
+        jsonStringToParse = match[1].trim();
+        console.log(
+          'ChatGPTService::generateSummary - Extracted JSON content from markdown block.'
+        );
+      } else {
+        jsonStringToParse = fullContent;
+        console.log(
+          'ChatGPTService::generateSummary - No markdown block detected, attempting to parse raw content.'
+        );
+      }
+      // --- End Robust JSON Extraction ---
 
       let summary = '';
       let metadata: SummaryMetadata | null = null;
       try {
-        const parsed = JSON.parse(fullContent) as {
+        // Parse the potentially cleaned JSON string
+        const parsed = JSON.parse(jsonStringToParse) as {
           summary?: string;
           metadata?: SummaryMetadata;
         };
         summary = parsed.summary || '';
         metadata = parsed.metadata || null;
       } catch (err) {
-        console.warn('Failed to parse unified JSON response:', err);
-        console.error('Full content received:', fullContent);
+        console.warn(
+          'ChatGPTService::generateSummary - Failed to parse JSON content:',
+          err
+        ); // Update log message
+        // Log the string we *tried* to parse for debugging
+        console.error(
+          'ChatGPTService::generateSummary - Content attempted to parse:',
+          jsonStringToParse
+        );
       }
 
       console.log(
