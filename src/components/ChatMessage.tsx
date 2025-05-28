@@ -26,7 +26,7 @@ const ChatMessage = ({ message, isLatest, currentPersona }: ChatMessageProps) =>
     <div
       ref={messageRef}
       className={cn(
-        "group flex w-full mb-2 animate-fade-in opacity-0",
+        "group flex w-full mb-2 animate-fade-in",
         isUser ? "justify-end" : "justify-start"
       )}
     >

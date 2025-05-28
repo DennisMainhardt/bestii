@@ -4,10 +4,10 @@ import animatePlugin from 'tailwindcss-animate';
 export default {
   darkMode: ['class'],
   content: [
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
-    './src/components/**/*.{ts,tsx}',
-    './src/pages/**/*.{ts,tsx}',
-    './src/app/**/*.{ts,tsx}',
   ],
   prefix: '',
   theme: {
@@ -73,6 +73,35 @@ export default {
           ai: '#202C33', // WhatsApp dark mode received bubble
           aiLight: '#FFFFFF', // WhatsApp light mode received bubble
         },
+        warm: {
+          50: '#fef7f0',
+          100: '#fdeee0',
+          200: '#fad8ba',
+          300: '#f5bd85',
+          400: '#ef9b4f',
+          500: '#ea7d28',
+          600: '#db631d',
+          700: '#b54a1a',
+          800: '#903d1c',
+          900: '#743319',
+        },
+        coral: {
+          50: '#fef4f2',
+          100: '#fee7e2',
+          200: '#fdd2ca',
+          300: '#fab3a5',
+          400: '#f58971',
+          500: '#ec6545',
+          600: '#d84a27',
+          700: '#b73e1d',
+          800: '#95351b',
+          900: '#7c311d',
+        },
+      },
+      fontFamily: {
+        sans: ['var(--font-sans, Inter)', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
+        casual: ['Comic Neue', 'cursive', 'system-ui'],
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -96,30 +125,33 @@ export default {
             height: '0',
           },
         },
-        'fade-in': {
-          from: {
-            opacity: '0',
-            transform: 'translateY(10px)',
-          },
-          to: {
-            opacity: '1',
-            transform: 'translateY(0)',
-          },
-        },
-        'pulse-light': {
+        float: {
           '0%, 100%': {
-            opacity: '0.5',
+            transform: 'translateY(0px)',
           },
           '50%': {
-            opacity: '0.8',
+            transform: 'translateY(-10px)',
           },
+        },
+        'float-delayed': {
+          '0%, 100%': {
+            transform: 'translateY(0px)',
+          },
+          '50%': {
+            transform: 'translateY(-15px)',
+          },
+        },
+        wiggle: {
+          '0%, 100%': { transform: 'rotate(-3deg)' },
+          '50%': { transform: 'rotate(3deg)' },
         },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'fade-in': 'fade-in 0.3s ease-out forwards',
-        'pulse-light': 'pulse-light 1.5s ease-in-out infinite',
+        float: 'float 6s ease-in-out infinite',
+        'float-delayed': 'float-delayed 8s ease-in-out infinite',
+        wiggle: 'wiggle 1s ease-in-out infinite',
       },
     },
   },

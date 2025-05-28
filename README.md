@@ -1,8 +1,8 @@
 # Modern Persona Chatbot
 
-A sophisticated chatbot application featuring multiple AI personas, persistent memory, and real-time interaction, built with React, TypeScript, Vite, Firebase, Tailwind CSS, and Shadcn UI.
+A sophisticated chatbot application featuring multiple AI personas, persistent memory, and real-time interaction, built with React, TypeScript, Vite, Firebase, Tailwind CSS, Shadcn UI, and Framer Motion.
 
-This application allows users to engage in conversations with distinct AI personalities (like "Raze" using GPT or "Reyna" using Claude). It leverages a persistent memory system to provide contextually relevant interactions by dynamically injecting recent conversation summaries and messages into the AI prompts.
+This application allows users to engage in conversations with distinct AI personalities. It leverages a persistent memory system to provide contextually relevant interactions. It now also features a redesigned, engaging landing page to welcome users.
 
 ## Core Features
 
@@ -12,51 +12,96 @@ This application allows users to engage in conversations with distinct AI person
   - **Authentication:** Secure user sign-up/sign-in via Email/Password and Google Sign-in.
     - Robust email verification flow with dedicated redirect handling.
     - Password reset functionality.
-    - Firestore user profile (`/users/{uid}`) created upon first sign-up/sign-in, storing `uid`, `email`, `displayName`, `createdAt`, `providerId`, and `lastLoginAt`.
+    - Firestore user profile (`/users/{uid}`) created upon first sign-up/sign-in.
   - **Firestore Database:**
     - Stores user profiles (`/users/{uid}`).
-    - Stores chat messages per user, tagged with the relevant persona (`/users/{uid}/messages`, contains `persona` field).
+    - Stores chat messages per user, tagged with the relevant persona (`/users/{uid}/messages`).
     - Stores AI-generated session summaries per persona (`/users/{userId}/personas/{personaId}/summaries`).
-    - Stores session metadata (`/users/{userId}/personas/{personaId}/session/metadata`) for controlling summarization (`lastSummarizedMessageTimestamp`).
-  - **Security Rules:** Requires careful configuration to protect user data (see Setup section).
+    - Stores session metadata (`/users/{userId}/personas/{personaId}/session/metadata`) for controlling summarization.
+  - **Security Rules:** Configured to protect user data.
 - **Persistent Memory System:**
-  - **Fused Memory Injection:** Dynamically constructs prompts for the AI before _each_ message by combining:
-    - Base persona instructions (defining the AI's core personality).
-    - The 3 most recent session summaries retrieved from Firestore (long-term context).
-    - The 5 most recent chat messages from the current session state (short-term context).
-  - **Automatic Session Summarization:** Ensures conversation context is captured for future sessions.
-    - **Regular Trigger:** Creates a summary using the active persona's AI model every `SUMMARIZE_THRESHOLD` (currently 6) messages exchanged.
-    - **Fallback Triggers:** Ensures context isn't lost even if the threshold isn't met:
-      - **Inactivity:** Summarizes unsummarized messages after `INACTIVITY_TIMEOUT_MS` (currently 2 minutes) of user inactivity.
-      - **Page Unload:** Attempts a _best-effort_ summary of unsummarized messages when the user closes the tab/browser (`beforeunload`). Note: Completion is not guaranteed due to browser limitations on asynchronous operations during unload.
-    - **Metadata Control:** Uses `lastSummarizedMessageTimestamp` in Firestore metadata (`/users/{uid}/personas/{personaId}/session/metadata`) to track which messages have been included in a summary, preventing redundant summarization.
-    - **Session Activation:** Resets the `lastSummarizedMessageTimestamp` to `null` (`markSessionAsActive`) when a user sends a new message, indicating new, unsummarized activity has begun.
+  - **Fused Memory Injection:** Dynamically constructs prompts for the AI.
+  - **Automatic Session Summarization:** Ensures conversation context is captured.
+- **Redesigned Landing Page:**
+  - **Hero Section:** Engaging hero with an animated phone mock-up displaying a live-typing chat sequence, built with Framer Motion.
+  - **Features Section:** Highlights key benefits and functionalities.
+  - **Testimonials Section:** Displays user feedback with star ratings and before/after scenarios.
+  - **FAQ Section:** Answers common questions.
+  - **Footer:** Contains relevant links and information.
+- **User Dashboard:**
+  - **Profile Section:** Allows users to view and update their profile information.
+  - **Subscription Section:** (Placeholder/Future capability for managing subscriptions).
 - **Modern Tech Stack:**
   - React & TypeScript
   - Vite for fast development build tooling
   - Tailwind CSS for utility-first styling
   - Shadcn UI for pre-built, accessible components
+  - Framer Motion for animations (especially on the landing page)
   - `react-hook-form` & `zod` for robust form handling and validation
   - `react-hot-toast` for notifications
 - **UI/UX:**
-  - Loading indicators for asynchronous operations (initial history loading, AI response).
-  - Protected routes (`/chat`) accessible only after login.
+  - **New Navigation Header:** Redesigned header with smooth scroll-activated blur/opacity effects and a mobile-friendly responsive menu, inspired by modern UI patterns. Includes user authentication status, profile dropdown, and theme toggle.
+  - Loading indicators for asynchronous operations.
+  - Protected routes (`/chat`, `/dashboard`) accessible only after login.
   - Responsive design for various screen sizes.
-  - Dark/Light theme support (via Shadcn UI).
+  - Dark/Light theme support.
   - Persona selection interface.
+
+## Recent Major Updates (Post-Initial Multi-Persona Setup)
+
+### 1. Comprehensive Landing Page Redesign
+
+The application now features a completely revamped landing page (`src/pages/Landing.tsx`) designed to be engaging and informative. This redesign was heavily inspired by the `DennisMainhardt/brutally-honest-buddy-bot` repository. Key components include:
+
+- `src/components/landing/Hero.tsx`: Features a prominent phone mock-up with a live-typing chat animation powered by Framer Motion, showcasing the chatbot's interaction style.
+- `src/components/landing/Features.tsx`: Clearly outlines the unique selling propositions of the chatbot.
+- `src/components/landing/Testimonials.tsx`: Displays authentic-looking user testimonials with avatars, before/after states, and star ratings, including a "Legendary CTA" block.
+- `src/components/landing/FAQ.tsx`: Addresses frequently asked questions.
+- `src/components/landing/Footer.tsx`: Standard footer with navigation and copyright.
+  The integration also involved merging Tailwind CSS configurations (custom colors, fonts, animations) and global styles from the inspiration repository.
+
+### 2. Navigation Header Overhaul
+
+The main application header (`src/components/Header.tsx`) was redesigned to provide a modern and fluid user experience.
+
+- **Inspiration:** The design and animation concepts were drawn from a `shadcn/ui` block (`hero-section-1`).
+- **Implementation:** Relevant navigation elements and animations (like scroll-based background opacity/blur changes and smooth mobile menu transitions) were extracted and adapted into the existing `Header.tsx`.
+- **Integration:** The new header seamlessly integrates existing functionalities like `useAuth` for conditional rendering of login/signup buttons vs. user profile dropdown, theme toggling, and logout logic. `next/link` was replaced with `react-router-dom`'s `Link`.
+
+### 3. Performance Optimization
+
+Significant effort was dedicated to addressing UI performance, particularly scroll lag experienced on the new landing page in Google Chrome.
+
+- **Key Culprit:** `backdrop-blur` effects on the header were identified as a primary source of lag in Chrome, while performing well in Safari.
+- **Iterative Adjustments:**
+  - Header: Various combinations of `bg-opacity` and `backdrop-blur` levels (e.g., `-lg`, `-md`, `-sm`, and complete removal) were tested to find a balance between aesthetics and performance.
+  - `Hero.tsx` animations: Framer Motion animations (phone pulse/glow, typing dots) were temporarily disabled to isolate their performance impact.
+  - `Testimonials.tsx`: A minor pulse animation was also temporarily disabled.
+- **Current Status:** Animations have been re-enabled. The header uses a moderate `backdrop-blur` (`backdrop-blur-sm`) and background opacity (`bg-background/50`) which provides an acceptable performance level on Chrome while retaining a good visual effect. Ongoing monitoring might be needed for further fine-tuning.
+
+### 4. User Dashboard
+
+A user dashboard (`src/pages/Dashboard.tsx`) was implemented with:
+
+- `src/components/dashboard/ProfileSection.tsx`: For users to view and update their profile.
+- `src/components/dashboard/SubscriptionSection.tsx`: Placeholder for future subscription management.
+- `src/components/dashboard/DashboardNav.tsx`: Navigation within the dashboard.
+  The header was updated to include a dropdown menu for accessing "Account Settings" (leading to the dashboard) and "Log Out".
 
 ## Project Structure (Key Areas)
 
 ```
 src/
-├── components/       # Reusable UI components (ChatInput, ChatMessage, Header, etc.)
-├── constants/        # Prompts, configuration values (e.g., SUMMARIZE_THRESHOLD)
+├── components/       # Reusable UI components
+│   ├── landing/      # Components specific to the new Landing Page (Hero, Features, Testimonials, etc.)
+│   ├── dashboard/    # Components specific to the User Dashboard
+│   ├── ui/           # Shadcn UI components (Button, DropdownMenu, etc.)
+│   └── (common components like ChatInput, ChatMessage, Header, ThemeToggle)
+├── constants/        # Prompts, configuration values
 ├── context/          # React Context (AuthContext)
-├── features/         # (Placeholder - if splitting features later)
-├── hooks/            # Custom React Hooks (if any)
-├── pages/            # Top-level page components (Login, Chat)
-├── services/         # API interaction layer (authService, messageService, memoryService, ChatGPTService, ClaudeService)
-├── types/            # TypeScript type definitions (Message, Persona, etc.)
+├── pages/            # Top-level page components (Landing, Login, Chat, Dashboard, etc.)
+├── services/         # API interaction layer
+├── types/            # TypeScript type definitions
 ├── utils/            # Utility functions
 ├── App.tsx           # Main application component with routing logic
 ├── main.tsx          # Application entry point
