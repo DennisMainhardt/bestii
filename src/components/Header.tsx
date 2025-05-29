@@ -166,10 +166,10 @@ const Header = () => {
               ) : (
                 <>
                   <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
-                    Sign In
+                    Login
                   </Button>
                   <Button size="sm" onClick={() => navigate("/signup")}>
-                    Sign Up
+                    Register
                   </Button>
                 </>
               )}

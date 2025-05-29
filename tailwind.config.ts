@@ -97,6 +97,7 @@ export default {
           800: '#95351b',
           900: '#7c311d',
         },
+        footerDarkBrown: 'rgb(47, 33, 24)',
       },
       fontFamily: {
         sans: ['var(--font-sans, Inter)', 'system-ui', 'sans-serif'],

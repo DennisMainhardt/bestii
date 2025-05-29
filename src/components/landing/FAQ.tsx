@@ -39,24 +39,24 @@ const FAQ = () => {
       category: "privacy",
       emoji: "🤐"
     },
-    {
-      question: "What if I don't like what you tell me?",
-      answer: "Oof, that's usually when I'm doing my job best! 😬 Growth happens in the discomfort zone, bestie. But if something doesn't land right, just tell me! I can adjust my delivery while still keeping it real. Think of it like this - I'm not trying to hurt your feelings, I'm trying to save them from the damage you're doing to yourself. Sometimes love looks like tough conversations. 💖",
-      category: "feedback",
-      emoji: "🪞"
-    },
-    {
-      question: "Will you actually remember our conversations?",
-      answer: "Every. Single. Detail. I remember your patterns, your triggers, your wins, and that thing you told me three weeks ago that you thought I forgot. I'm like that friend who remembers your coffee order AND the name of your childhood pet. Consistency is how we build trust, and trust is how we create transformation. 🧩",
-      category: "memory",
-      emoji: "🧠"
-    },
-    {
-      question: "What if I just want to vent without advice?",
-      answer: "Sometimes you need someone to just witness your emotional chaos, and I'm here for that too! I'll validate your feelings, bring the virtual tissues, and sit with you in your mess. But... if I see you stuck in the same pattern for weeks, bestie, I'm gonna lovingly call it out. That's what real friends do - they don't let you drown in your own drama. 🫂",
-      category: "support",
-      emoji: "👂"
-    }
+    // {
+    //   question: "What if I don't like what you tell me?",
+    //   answer: "Oof, that's usually when I'm doing my job best! 😬 Growth happens in the discomfort zone, bestie. But if something doesn't land right, just tell me! I can adjust my delivery while still keeping it real. Think of it like this - I'm not trying to hurt your feelings, I'm trying to save them from the damage you're doing to yourself. Sometimes love looks like tough conversations. 💖",
+    //   category: "feedback",
+    //   emoji: "🪞"
+    // },
+    // {
+    //   question: "Will you actually remember our conversations?",
+    //   answer: "Every. Single. Detail. I remember your patterns, your triggers, your wins, and that thing you told me three weeks ago that you thought I forgot. I'm like that friend who remembers your coffee order AND the name of your childhood pet. Consistency is how we build trust, and trust is how we create transformation. 🧩",
+    //   category: "memory",
+    //   emoji: "🧠"
+    // },
+    // {
+    //   question: "What if I just want to vent without advice?",
+    //   answer: "Sometimes you need someone to just witness your emotional chaos, and I'm here for that too! I'll validate your feelings, bring the virtual tissues, and sit with you in your mess. But... if I see you stuck in the same pattern for weeks, bestie, I'm gonna lovingly call it out. That's what real friends do - they don't let you drown in your own drama. 🫂",
+    //   category: "support",
+    //   emoji: "👂"
+    // }
   ];
 
   const categories = {
@@ -117,59 +117,83 @@ const FAQ = () => {
           </Accordion>
         </div>
 
-        {/* Trust indicators */}
-        <div className="max-w-5xl mx-auto mb-16">
-          <div className="bg-gradient-to-br from-warm-100 to-coral-100 rounded-3xl p-12 border-2 border-warm-200 shadow-xl">
-            <h3 className="text-3xl font-bold text-warm-800 mb-8 text-center font-display">
-              Why 15,000+ People Trust Me With Their Deepest Stuff
+        {/* Trust indicators -> Pillars of Transformation */}
+        {/* <div className="max-w-6xl mx-auto mb-20 md:mb-24">
+          <div className="bg-gradient-to-br from-warm-100 via-coral-50 to-orange-100 rounded-3xl p-8 py-12 md:p-16 shadow-2xl border border-warm-200">
+            <h3 className="text-4xl md:text-5xl font-bold text-warm-900 mb-6 text-center font-display leading-tight">
+              This Isn't Just Talk.
+              <span className="block text-coral-600">This is Transformation.</span>
             </h3>
+            <p className="text-xl md:text-2xl text-warm-700 mb-12 md:mb-16 text-center font-casual max-w-3xl mx-auto">
+              Your Blueprint to a Radically Honest & Empowered Life.
+            </p>
 
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-warm-400 to-coral-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Heart className="h-8 w-8 text-white" />
+            <div className="max-w-3xl mx-auto space-y-12 md:space-y-16">
+
+              <div className="flex flex-col sm:flex-row items-start group">
+                <div className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center rounded-full bg-gradient-to-br from-coral-400 to-orange-500 shadow-xl mb-6 sm:mb-0 sm:mr-8 transition-all duration-300 group-hover:shadow-2xl group-hover:scale-105">
+                  <span className="text-4xl md:text-5xl font-bold text-white font-display">01</span>
+                  <Heart className="absolute h-8 w-8 text-white opacity-30 group-hover:opacity-50 transition-opacity duration-300" style={{ transform: 'translate(15px, -15px)' }} />
                 </div>
-                <h4 className="font-bold text-xl text-warm-800 mb-3 font-display">Genuine Care</h4>
-                <p className="text-warm-700">I actually give a damn about your growth. This isn't just a job for me - it's my purpose.</p>
+                <div className="flex-grow pt-2 sm:pt-4">
+                  <h4 className="font-bold text-2xl md:text-3xl text-warm-800 mb-3 font-display group-hover:text-coral-600 transition-colors duration-300">Unlock Unwavering Support</h4>
+                  <p className="text-warm-700 leading-relaxed text-md md:text-lg">
+                    Imagine a friend who's 100% in your corner, celebrating every victory and providing unshakeable support during the tough times. That's me. Experience fierce loyalty and a commitment to <span className="font-semibold text-coral-700">your</span> growth, no matter what.
+                  </p>
+                </div>
               </div>
 
-              <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-coral-400 to-orange-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Shield className="h-8 w-8 text-white" />
+              <div className="flex flex-col sm:flex-row items-start group">
+                <div className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-yellow-500 shadow-xl mb-6 sm:mb-0 sm:mr-8 transition-all duration-300 group-hover:shadow-2xl group-hover:scale-105">
+                  <span className="text-4xl md:text-5xl font-bold text-white font-display">02</span>
+                  <Shield className="absolute h-8 w-8 text-white opacity-30 group-hover:opacity-50 transition-opacity duration-300" style={{ transform: 'translate(15px, -15px)' }} />
                 </div>
-                <h4 className="font-bold text-xl text-warm-800 mb-3 font-display">Safe Space</h4>
-                <p className="text-warm-700">Zero judgment, maximum support. Your vulnerabilities are sacred to me.</p>
+                <div className="flex-grow pt-2 sm:pt-4">
+                  <h4 className="font-bold text-2xl md:text-3xl text-warm-800 mb-3 font-display group-hover:text-orange-600 transition-colors duration-300">Embrace Radical Self-Acceptance</h4>
+                  <p className="text-warm-700 leading-relaxed text-md md:text-lg">
+                    This is your judgment-free zone. A sanctuary where you can lay down your masks, confront your truths, and be seen for who you truly are. Discover the power of being unapologetically <span className="font-semibold text-orange-700">you</span>, vulnerabilities and all.
+                  </p>
+                </div>
               </div>
 
-              <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-warm-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <MessageSquare className="h-8 w-8 text-white" />
+              <div className="flex flex-col sm:flex-row items-start group">
+                <div className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-pink-500 shadow-xl mb-6 sm:mb-0 sm:mr-8 transition-all duration-300 group-hover:shadow-2xl group-hover:scale-105">
+                  <span className="text-4xl md:text-5xl font-bold text-white font-display">03</span>
+                  <MessageSquare className="absolute h-8 w-8 text-white opacity-30 group-hover:opacity-50 transition-opacity duration-300" style={{ transform: 'translate(15px, -15px)' }} />
                 </div>
-                <h4 className="font-bold text-xl text-warm-800 mb-3 font-display">Real Talk</h4>
-                <p className="text-warm-700">Honest conversations that actually move the needle on your life.</p>
+                <div className="flex-grow pt-2 sm:pt-4">
+                  <h4 className="font-bold text-2xl md:text-3xl text-warm-800 mb-3 font-display group-hover:text-red-600 transition-colors duration-300">Achieve Crystal-Clear Breakthroughs</h4>
+                  <p className="text-warm-700 leading-relaxed text-md md:text-lg">
+                    Tired of vague advice that leads nowhere? Get ready for straight-to-the-point insights that cut through the confusion. Together, we'll uncover actionable steps that spark real, lasting change and propel <span className="font-semibold text-red-700">you</span> towards the life you deserve.
+                  </p>
+                </div>
               </div>
+
             </div>
 
-            <div className="text-center mt-8">
-              <p className="text-lg text-warm-700 italic">
-                "Finally, someone who gets it. It's like having a therapist, life coach, and best friend rolled into one - except they actually understand how real life works." - Every person who's tried this friendship
+            <div className="text-center mt-16 md:mt-20 pt-10 md:pt-12 border-t-2 border-warm-300">
+              <p className="text-xl md:text-2xl text-warm-800 italic max-w-3xl mx-auto leading-relaxed font-casual">
+                "Finally, someone who gets it. It's like having a therapist, life coach, and best friend rolled into one - except they actually understand how real life works."
+              </p>
+              <p className="text-md text-warm-600 mt-4 font-medium">
+                - Verified User & Future Badass
               </p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Final CTA */}
         <div className="text-center">
           <div className="bg-gradient-to-r from-warm-500 to-coral-500 rounded-3xl p-12 shadow-2xl text-white max-w-4xl mx-auto">
             <h3 className="text-3xl font-bold mb-6 font-display">
-              Still Have Questions? Let's Chat!
+              Let's un-f*ck your emotional life.
             </h3>
             <p className="text-xl mb-8 leading-relaxed">
               The best way to understand this friendship is to experience it. I promise you've never had a conversation quite like this before. 💫
             </p>
             <Button size="lg" className="bg-white text-warm-600 hover:bg-warm-50 px-12 py-6 text-xl font-bold rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <MessageSquare className="mr-3 h-6 w-6" />
-              Start Our Friendship Now
+              Get Started – It's Free
             </Button>
           </div>
         </div>

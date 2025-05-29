@@ -384,7 +384,7 @@ const Login = () => {
                 </div>
               </div>
               <CardTitle className="text-2xl font-bold text-center">
-                {isSignUp ? "Create an account" : "Sign in"}
+                {isSignUp ? "Create an account" : "Login"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -405,7 +405,7 @@ const Login = () => {
                       setIsSignUp(false);
                     }}
                   >
-                    Back to Sign In
+                    Back to Login
                   </Button>
                 </div>
               ) : (
@@ -549,7 +549,7 @@ const Login = () => {
                       className="text-primary hover:underline cursor-pointer"
                       onClick={toggleSignUp}
                     >
-                      {isSignUp ? "Sign in" : "Sign up"}
+                      {isSignUp ? "Login" : "Register"}
                     </span>
                   </div>
                 </>
