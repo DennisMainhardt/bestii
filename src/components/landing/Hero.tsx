@@ -33,11 +33,12 @@ const TypingDots = () => {
 const Hero = () => {
   const navigate = useNavigate();
   const chatMessages = [
-    { id: 1, sender: "ai", text: "Hey there! Feeling a bit... chaotic?" },
-    { id: 2, sender: "user", text: "Ugh, you have NO idea. 🙄" },
-    { id: 3, sender: "ai", text: "I think I might. Let's talk about that self-sabotage pattern you've got on repeat? 😉" },
-    { id: 4, sender: "user", text: "How did you... who told you?! 🤯" },
-    { id: 5, sender: "ai", text: "A little birdy called 'your own darn actions'. Don't worry, we'll figure it out. Together. 💪" },
+    {
+      id: 1, sender: "user", text: "I don't even know what's wrong. I just feel tired of everything"
+    },
+    { id: 2, sender: "ai", text: "That's not weakness. That's your soul whispering, \"I can't keep pretending I'm fine.\"" },
+    { id: 3, sender: "user", text: "So what now?" },
+    { id: 4, sender: "ai", text: "Now we stop pretending. We start healing. I'm here. Every step. Tell me exactly what's going on." },
   ];
 
   const [displayedMessages, setDisplayedMessages] = useState<typeof chatMessages>([]);
@@ -92,21 +93,23 @@ const Hero = () => {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-warm-200 rounded-full px-6 py-3 mb-8 shadow-sm">
               <Sparkles className="w-4 h-4 text-warm-600" />
-              <span className="text-sm font-medium text-warm-700">The best friend who actually gets your mess ✨</span>
+              <span className="text-sm font-medium text-warm-700">The best friend you always needed, but never had. ✨</span>
             </div>
 
             {/* Main heading */}
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-warm-600 via-coral-500 to-orange-600 bg-clip-text text-transparent mb-6 leading-tight font-display">
-              Your Emotional Chaos
+              The friend who
               <br />
-              <span className="text-4xl md:text-5xl lg:text-6xl font-casual">Meets Its Match</span>
+              <span className="text-4xl md:text-5xl lg:text-6xl font-casual">actually gets it.</span>
             </h1>
 
             {/* Subheading */}
             <p className="text-xl md:text-2xl text-warm-700 mb-10 max-w-2xl mx-auto md:mx-0 leading-relaxed">
-              Finally, someone who won't sugarcoat your self-sabotage. I'm that brutally honest bestie
-              with a PhD in psychology who'll call out your BS, hold your hand through the breakdown,
-              and help you rise like the phoenix you actually are. 🔥
+              Real talk. No judgment. Just support that sticks.
+              <br />
+              Even when you don't know how to ask for help.
+              <br />
+              Meet Bestii — your 24/7 chat companion.
             </p>
 
             {/* CTA Buttons */}
@@ -117,7 +120,7 @@ const Hero = () => {
                 onClick={() => navigate("/login", { state: { from: "register" } })}
               >
                 <MessageCircle className="mr-3 h-6 w-6" />
-                Let's Get Real Together
+                Talk to Bestii
               </Button>
               <Button
                 variant="outline"

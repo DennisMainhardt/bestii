@@ -37,7 +37,7 @@ export class ChatGPTService {
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4.1',
           messages: messages,
           temperature: 0.8,
           max_tokens: 2000,
@@ -174,7 +174,7 @@ Return everything in a single JSON object with the following structure:
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini', // Or another suitable model
+          model: 'gpt-4.1', // Or another suitable model
           messages: messages,
           temperature: 0.3, // Lower temp for factual summary
           max_tokens: actualMaxTokens, // Use the defined value

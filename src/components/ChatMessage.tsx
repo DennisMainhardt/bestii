@@ -22,6 +22,17 @@ const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
     }
   }, [isLatest]);
 
+  const renderFormattedText = (text: string) => {
+    // This regex finds text wrapped in **...** and replaces it with <strong>...</strong>
+    const boldRegex = /\*\*(.*?)\*\*/g;
+    const italicRegex = /\*(.*?)\*/g;
+
+    const withBold = text.replace(boldRegex, '<strong>$1</strong>');
+    const withItalic = withBold.replace(italicRegex, '<em>$1</em>');
+
+    return { __html: withItalic };
+  };
+
   const text = message.content;
   const timestamp = new Date(message.timestamp).toLocaleTimeString([], {
     hour: "2-digit",
@@ -54,8 +65,8 @@ const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
               "text-base leading-relaxed whitespace-pre-wrap",
               isUser ? "text-white" : "text-gray-800"
             )}
+            dangerouslySetInnerHTML={renderFormattedText(text)}
           >
-            {text}
           </p>
         </div>
 
