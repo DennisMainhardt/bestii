@@ -2,17 +2,26 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from '@/context/AuthContext';
 
 const SubscriptionSection: React.FC = () => {
+  const { currentUser } = useAuth();
+
   // Placeholder for subscription data and management logic
   const [subscriptionStatus, setSubscriptionStatus] = React.useState<'active' | 'inactive' | 'trial'>('active');
   const [planName, setPlanName] = React.useState('Premium Plan');
   const [nextBillingDate, setNextBillingDate] = React.useState('2024-12-31');
 
-  const handleManageSubscription = () => {
-    // Logic to redirect to a subscription management portal (e.g., Stripe)
-    console.log('Redirecting to manage subscription...');
-    alert('Redirecting to subscription management portal (not implemented).');
+  const handleManageSubscription = async () => {
+    // This is a placeholder. In a real application, you would use the
+    // Firebase Stripe extension's portal link functionality.
+    // For now, it will just log to the console.
+    if (currentUser) {
+      // In a real app, you'd get the portal link from a backend call
+      // or from the user's custom claims if using the Stripe extension.
+      // E.g., const portalUrl = '...';
+      // window.location.href = portalUrl;
+    }
   };
 
   return (

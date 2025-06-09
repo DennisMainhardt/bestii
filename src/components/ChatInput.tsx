@@ -5,9 +5,10 @@ import { SendHorizontal, Paperclip, Smile } from "lucide-react";
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
   isAiResponding: boolean;
+  currentPersonaId: string;
 }
 
-const ChatInput = ({ onSendMessage, isAiResponding }: ChatInputProps) => {
+const ChatInput = ({ onSendMessage, isAiResponding, currentPersonaId }: ChatInputProps) => {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 

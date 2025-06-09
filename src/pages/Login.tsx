@@ -137,18 +137,15 @@ const Login = () => {
       const user = userCredential.user;
 
       if (!user.emailVerified) {
-        console.log("Client state shows email not verified, attempting reload...");
         try {
           await userCredential.user.reload();
           const refreshedUser = auth.currentUser;
 
           if (refreshedUser?.emailVerified) {
-            console.log("Email verified after reload during login attempt!");
             setIsAwaitingVerification(false);
             try {
               const userDocRef = doc(db, 'users', refreshedUser.uid);
               await updateDoc(userDocRef, { lastLoginAt: serverTimestamp() });
-              console.log(`Updated lastLoginAt for user ${refreshedUser.uid}`);
             } catch (updateError) {
               console.error("Failed to update lastLoginAt after verification:", updateError);
             }
@@ -181,7 +178,6 @@ const Login = () => {
       try {
         const userDocRef = doc(db, 'users', user.uid);
         await updateDoc(userDocRef, { lastLoginAt: serverTimestamp() });
-        console.log(`Updated lastLoginAt for user ${user.uid}`);
       } catch (updateError) {
         console.error("Failed to update lastLoginAt:", updateError);
       }
@@ -222,6 +218,10 @@ const Login = () => {
           createdAt: serverTimestamp(),
           providerId: 'password',
           lastLoginAt: serverTimestamp(),
+          credits: 5,
+          lastCreditReset: serverTimestamp(),
+          monthlyResets: 0,
+          monthlyCycleStart: serverTimestamp(),
         });
         console.log(`Firestore document created successfully for user ${user.uid}.`);
       } catch (firestoreError) {
@@ -261,60 +261,45 @@ const Login = () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      const providerData = user.providerData[0];
-      console.log('Google Sign-in successful for:', user.uid, user.email);
 
-      try {
-        const userDocRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(userDocRef);
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
 
-        if (!docSnap.exists()) {
-          console.log(`Firestore document for user ${user.uid} does not exist. Creating...`);
-          await setDoc(userDocRef, {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName || user.email?.split('@')[0] || `User_${user.uid.substring(0, 5)}`,
-            photoURL: user.photoURL || null,
-            createdAt: serverTimestamp(),
-            providerId: providerData?.providerId || 'google.com',
-            lastLoginAt: serverTimestamp(),
-          });
-          console.log(`Firestore document created successfully for Google user ${user.uid}.`);
-        } else {
-          console.log(`Firestore document already exists for user ${user.uid}. Updating lastLoginAt...`);
-          await updateDoc(userDocRef, { lastLoginAt: serverTimestamp() });
-          console.log(`Updated lastLoginAt for user ${user.uid}`);
-        }
-      } catch (firestoreError) {
-        console.error(`Failed to check/create Firestore document for Google user ${user.uid}:`, firestoreError);
+      if (!userDoc.exists()) {
+        // New user
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || user.email?.split('@')[0],
+          photoURL: user.photoURL,
+          providerId: result.providerId,
+          createdAt: serverTimestamp(),
+          lastLoginAt: serverTimestamp(),
+          credits: 5,
+          lastCreditReset: serverTimestamp(),
+          monthlyResets: 0,
+          monthlyCycleStart: serverTimestamp(),
+        });
+        console.log(`Created new user document for ${user.uid} via Google.`);
+      } else {
+        // Existing user
+        await updateDoc(userDocRef, {
+          lastLoginAt: serverTimestamp(),
+          ...(user.displayName && { displayName: user.displayName }),
+          ...(user.photoURL && { photoURL: user.photoURL }),
+        });
+        console.log(`Updated lastLoginAt for existing user ${user.uid} via Google.`);
       }
 
-      if (!user.emailVerified) {
-        console.log("Google user email not verified (uncommon). Handling...");
-        setError(
-          <span className="flex flex-col items-center gap-2 text-center">
-            <span>Your Google account email needs verification. Please check your inbox.</span>
-            <button
-              type="button"
-              className="text-xs px-2 py-1 rounded bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-50"
-              onClick={() => handleResendVerification(user)}
-              disabled={isLoading}
-            >
-              Resend verification
-            </button>
-          </span>
-        );
-        setIsAwaitingVerification(true);
-        setIsLoading(false);
-        return;
-      }
-
-      console.log("Navigating Google user to chat...");
       navigate("/chat");
     } catch (err) {
       const error = err as AuthError;
-      console.error("Google Sign-in failed:", error);
-      setError(`Failed to sign in with Google: ${error.message}`);
+      if (error.code === 'auth/popup-closed-by-user') {
+        setError("Login process was cancelled. Please try again.");
+      } else {
+        setError(`Google login failed: ${error.message}`);
+        console.error("Google login error:", error);
+      }
     } finally {
       setIsLoading(false);
     }

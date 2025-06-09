@@ -20,6 +20,7 @@ import { app } from '@/firebase/firebaseConfig';
 import { Message } from './messageService'; // Or import from a shared types file
 import { ChatGPTService } from '@/services/chatGPTService'; // Import AI service types
 import { ClaudeService } from '@/services/claudeService'; // Import AI service types
+import { SummaryMetadata } from '@/types/memory';
 
 // Type for the AI service instance that can be passed
 type AIService = ChatGPTService | ClaudeService;
@@ -36,14 +37,6 @@ const db = getFirestore(app);
 // Interfaces
 export interface SessionMetadata {
   lastSummarizedMessageTimestamp: Timestamp | null;
-}
-
-// Define the interface for the structured metadata (can be imported if defined elsewhere)
-interface SummaryMetadata {
-  key_people: string[];
-  key_events: string[];
-  emotional_themes: string[];
-  triggers: string[];
 }
 
 export interface SessionMemorySummary {
@@ -236,7 +229,7 @@ export const getRecentMemorySummaries = async (
             ? data.lastMessageTimestamp
             : null,
         tokenCount: data.tokenCount,
-        metadata: data.metadata as SummaryMetadata,
+        metadata: data.metadata,
       });
     });
 

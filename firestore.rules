@@ -30,7 +30,25 @@ service cloud.firestore {
       return request.resource.data[fieldName] == null || request.resource.data[fieldName] is timestamp;
     }
 
-    // *** MOVED and KEPT: Function to validate memory session data ***
+    // Enhanced function to validate credit updates securely
+    function isValidCreditUpdate() {
+      let currentCredits = resource.data.credits;
+      let newCredits = request.resource.data.credits;
+      let lastCreditReset = request.resource.data.lastCreditReset;
+      // Allow credit updates in these scenarios:
+      // 1. Decrease by 1 (for message sending): current - 1
+      // 2. Reset to 5 (daily reset): when new credits = 5
+      // 3. Decrease from any amount to 0 (edge case handling)
+      // If credits are being reset to 5, lastCreditReset must also be updated to server timestamp
+      return (
+        (newCredits == currentCredits - 1) ||
+        (newCredits == 5 && lastCreditReset == request.time) ||
+        (newCredits == 0) ||
+        (newCredits >= 0 && newCredits <= 5)
+      );
+    }
+
+    // Function to validate memory session data
     function isMemorySessionDataValid(data) {
       // Check required fields and types for memory sessions
       return data.summary is string && data.summary.size() > 0 &&
@@ -40,11 +58,10 @@ service cloud.firestore {
              (data.metadata == null || data.metadata is map); // Allow optional metadata field, ensure it's a map if present
     }
 
-
     // ==== User Profiles (/users/{userId}) ====
     match /users/{userId} {
       // Allow owner to read their profile
-      allow get: if isOwner(userId);
+      allow read: if isOwner(userId);
 
       // Allow owner to create their profile document only if it doesn't exist yet
       // Validate required fields upon creation
@@ -53,37 +70,41 @@ service cloud.firestore {
                       && isNonEmptyString('email')
                       && isNonEmptyString('displayName') // Ensure display name is provided
                       && isNonEmptyString('providerId')
+                      && request.resource.data.credits == 5
+                      && request.resource.data.monthlyResets == 0
                       && isServerTimestamp('createdAt')
-                      && isServerTimestamp('lastLoginAt'); // lastLoginAt set on creation too
+                      && isServerTimestamp('lastLoginAt')
+                      && isServerTimestamp('lastCreditReset')
+                      && isServerTimestamp('monthlyCycleStart');
 
-      // Allow owner to update specific fields
+      // Allow owner to update specific fields with strict validation
       allow update: if isOwner(userId)
-                      // Ensure ONLY known fields exist in the *entire* document data after update
-                      && request.resource.data.keys().hasOnly([
-                            'uid', 'email', 'providerId', 'createdAt', // Immutable keys
-                            'displayName', 'photoURL', 'lastLoginAt', // Mutable standard keys
-                            'personaLastActive', 'personaLastSummaryTimestamp' // Mutable map keys ADDED
-                          ])
-                      // Ensure IMMUTABLE fields are NOT being written
+                      // Prevent modification of critical immutable fields
                       && !('uid' in request.writeFields)
                       && !('email' in request.writeFields)
                       && !('providerId' in request.writeFields)
                       && !('createdAt' in request.writeFields)
-                      // Validate types of fields being written (if they are part of the write)
-                      && (!( 'displayName' in request.writeFields ) || request.resource.data.displayName is string)
-                      && (!( 'photoURL' in request.writeFields ) || request.resource.data.photoURL == null || request.resource.data.photoURL is string)
-                      && (!( 'lastLoginAt' in request.writeFields ) || request.resource.data.lastLoginAt == request.time)
-                      // ADDED: Validate personaLastActive map update (assuming only server timestamps are added/updated)
-                      && (!( 'personaLastActive' in request.writeFields ) || request.resource.data.personaLastActive is map) // Basic map check
-                      // ADDED: Validate personaLastSummaryTimestamp map update
-                      && (!( 'personaLastSummaryTimestamp' in request.writeFields ) || (
-                            request.resource.data.personaLastSummaryTimestamp is map &&
-                            // Optional: Add check if only one key is being updated and it's a server timestamp
-                            // This is complex, simpler check might be sufficient if only app writes here
-                            true // Simple validation: just ensure it's a map during update
-                         ));
+                      // Validate credit updates to prevent artificial increases
+                      && (!('credits' in request.writeFields) || isValidCreditUpdate())
+                      // Validate other credit-related fields
+                      && (!('monthlyResets' in request.writeFields) || 
+                          (request.resource.data.monthlyResets is number && 
+                           request.resource.data.monthlyResets >= 0 && 
+                           request.resource.data.monthlyResets <= 6))
+                      // Validate timestamp fields
+                      && (!('lastCreditReset' in request.writeFields) || isServerTimestamp('lastCreditReset'))
+                      && (!('monthlyCycleStart' in request.writeFields) || isServerTimestamp('monthlyCycleStart'))
+                      && (!('lastLoginAt' in request.writeFields) || isServerTimestamp('lastLoginAt'))
+                      && (!('lastActive' in request.writeFields) || isServerTimestamp('lastActive'))
+                      // Validate optional fields
+                      && (!('displayName' in request.writeFields) || request.resource.data.displayName is string)
+                      && (!('photoURL' in request.writeFields) || 
+                          request.resource.data.photoURL == null || request.resource.data.photoURL is string)
+                      // Validate map fields
+                      && (!('personaLastActive' in request.writeFields) || request.resource.data.personaLastActive is map)
+                      && (!('personaLastSummaryTimestamp' in request.writeFields) || request.resource.data.personaLastSummaryTimestamp is map);
 
-      // Disallow listing all users and deleting profiles (unless implementing deletion feature)
+      // Disallow listing all users and deleting profiles
       allow list, delete: if false;
     }
 
@@ -98,6 +119,11 @@ service cloud.firestore {
         allow update, delete: if false;
     }
 
+    // ==== Prevent listing of any subcollections under users (defense-in-depth) ====
+    match /users/{userId}/{subcollection=**} {
+      allow list: if false;
+    }
+
     // ==== Per-Persona Summaries (/users/{userId}/personas/{personaId}/summaries/{summaryId}) ====
     match /users/{userId}/personas/{personaId}/summaries/{summaryId} {
         allow read: if isOwner(userId);
@@ -109,27 +135,30 @@ service cloud.firestore {
 
     // ==== Per-Persona Session Metadata (/users/{userId}/personas/{personaId}/session/metadata) ====
     match /users/{userId}/personas/{personaId}/session/metadata {
-        allow get: if isOwner(userId);
+        allow read: if isOwner(userId); // Changed from 'get' to 'read' for consistency
         allow create: if isOwner(userId)
                         && isTimestampOrNull('lastSummarizedMessageTimestamp');
         allow update: if isOwner(userId)
                         && request.writeFields.hasOnly(['lastSummarizedMessageTimestamp'])
-                        && (request.resource.data.lastSummarizedMessageTimestamp == null || request.resource.data.lastSummarizedMessageTimestamp is timestamp);
-        allow list, delete: if false; // list likely irrelevant for single doc, but good to be explicit
+                        && (request.resource.data.lastSummarizedMessageTimestamp == null || 
+                            request.resource.data.lastSummarizedMessageTimestamp is timestamp);
+        allow list, delete: if false;
     }
 
     // ==== Memory Sessions (/users/{userId}/personas/{personaId}/memory_sessions/{sessionId}) ====
     match /users/{userId}/personas/{personaId}/memory_sessions/{sessionId} {
-      allow list, get: if isOwner(userId);
-      // This rule now correctly calls the function defined within the service scope
+      allow read: if isOwner(userId);
       allow create: if isOwner(userId) && isMemorySessionDataValid(request.resource.data);
       allow update, delete: if false;
     }
 
-    // Add rules for any other top-level collections here if created later.
-    // By default, access to any path not explicitly matched is denied.
-
+    // Default deny for any unmatched paths
   } // End match /databases/{database}/documents
+
+  // ==== Explicit default deny for all unmatched paths (defense-in-depth) ====
+  match /{document=**} {
+    allow read, write: if false;
+  }
 } // End service cloud.firestore
 
 // *** Redundant/Unused functions removed from here ***

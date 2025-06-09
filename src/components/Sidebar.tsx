@@ -49,7 +49,7 @@ const Sidebar = ({ isOpen, onClose, onSelectPersona, currentPersona }: SidebarPr
             <div className="flex items-center gap-4">
               <div className="w-9 h-9 rounded-full overflow-hidden shadow-sm">
                 <img
-                  src={`/public/${currentPersona.id}.png`}
+                  src={`/${currentPersona.id}.png`}
                   alt={`${currentPersona.name} Profile`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -97,7 +97,7 @@ const Sidebar = ({ isOpen, onClose, onSelectPersona, currentPersona }: SidebarPr
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 rounded-full overflow-hidden">
                       <img
-                        src={`/public/${persona.id}.png`}
+                        src={`/${persona.id}.png`}
                         alt={`${persona.name} Profile`}
                         className="w-full h-full object-cover"
                         onError={(e) => {

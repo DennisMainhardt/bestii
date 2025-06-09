@@ -21,20 +21,13 @@ import {
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebaseConfig'; // Ensure db is correctly initialized and exported
+import { SummaryMetadata } from '@/types/memory';
 
 export interface FirestoreMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   createdAt: Timestamp;
-}
-
-// Add the SummaryMetadata interface here (or import if defined elsewhere)
-interface SummaryMetadata {
-  key_people: string[];
-  key_events: string[];
-  emotional_themes: string[];
-  triggers: string[];
 }
 
 export interface FirestoreSummary {

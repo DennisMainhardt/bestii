@@ -28,8 +28,11 @@ import {
   saveSummary,
   updateLastSummaryTimestamp,
 } from "@/firebase/firestoreUtils";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, CreditCard, X } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
+import { SummaryMetadata } from "@/types/memory";
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 type DisplayMessage = MessageType;
 
@@ -40,6 +43,41 @@ interface ChatHistory {
     error: string | null;
   };
 }
+
+interface OutOfCreditsNoticeProps {
+  onClose: () => void;
+}
+
+const OutOfCreditsNotice = ({ onClose }: OutOfCreditsNoticeProps) => {
+  const navigate = useNavigate();
+  return (
+    <div className="relative flex flex-col items-center justify-center h-full text-center p-6">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onClose}
+        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        aria-label="Close notification"
+      >
+        <X size={24} />
+      </Button>
+      <AlertTriangle className="text-orange-400 mb-4" size={48} />
+      <h2 className="text-2xl font-semibold text-gray-800 mb-2">You're out of credits!</h2>
+      <p className="text-muted-foreground max-w-sm mb-6">
+        You've used all your free daily credits. You can wait for your next reset, or upgrade to unlock unlimited messaging and premium features.
+      </p>
+      <div className="flex items-center gap-4">
+        <Button
+          onClick={() => navigate('/dashboard')}
+          size="lg"
+          className="bg-orange-500 hover:bg-orange-600 text-white"
+        >
+          <CreditCard className="mr-2" size={20} /> Upgrade Your Plan
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 // Helper function for base prompts (avoids repeating large strings)
 const getBaseSystemPrompt = (personaId: string): string => {
@@ -94,7 +132,6 @@ IMPORTANT: You have access to full emotional memory of the user use it to fully 
   }
 };
 
-
 const Chat = () => {
   const { currentUser } = useAuth();
   const [currentPersona, setCurrentPersona] = useState<Persona>({
@@ -110,6 +147,7 @@ const Chat = () => {
     reyna: { messages: [], isAiResponding: false, error: null },
   });
 
+  const [showOutOfCreditsNotice, setShowOutOfCreditsNotice] = useState(false);
   const [sessionMemorySummaries, setSessionMemorySummaries] = useState<{ [key: string]: SessionMemorySummary[] | null }>({});
   const [isLoadingMessages, setIsLoadingMessages] = useState(true); // Used for AI response loading
   const [isHistoryLoading, setIsHistoryLoading] = useState(true); // Used for initial history load
@@ -159,7 +197,6 @@ const Chat = () => {
     const personaId = currentPersona.id;
 
     const fetchMemory = async () => {
-      // console.log(`MEMORY_FETCH_EFFECT: Fetching recent session summaries for user ${userId}, persona ${personaId}...`); // REMOVED
       try {
         const summaries = await getRecentMemorySummaries(userId, personaId, 3);
         setSessionMemorySummaries(prev => ({ ...prev, [personaId]: summaries }));
@@ -203,26 +240,20 @@ This persona is built for transformation. Unfiltered, fierce, and human.
     // NOTE: This will be *overwritten* by the more specific prompt in handleSendMessage before each call
     const service = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
     service?.setSystemPrompt(staticPromptPart);
-    // Keep this log for clarity on initial/static prompt setting
-    // console.log(`SYSTEM_PROMPT_BASE_EFFECT: Setting static base prompt for ${personaId}.`); 
 
   }, [currentPersona.id, currentUser]); // Dependencies: only persona and user
 
   // Effect for loading initial history and setting up real-time listener
   useEffect(() => {
-    // console.log("EFFECT: Listener Setup Effect - Running..."); // REMOVE
     if (!currentUser?.uid || !currentPersona?.id) {
-      // console.log("EFFECT: Listener Setup Effect - Skipping (no user/persona)."); // REMOVE
       setIsHistoryLoading(false); // Ensure loading stops if no user/persona
       return;
     }
     const userId = currentUser.uid;
     const personaId = currentPersona.id;
-    // console.log(`EFFECT: Listener Setup Effect - User: ${userId}, Persona: ${personaId}`); // REMOVE
     let unsubscribeListener: (() => void) | null = null;
 
     const loadAndListen = async () => {
-      // console.log(`EFFECT: loadAndListen() called for ${personaId}`); // REMOVE
       setIsHistoryLoading(true);
       listenerAttachedRef.current[personaId] = false; // Reset listener flag
 
@@ -246,103 +277,31 @@ This persona is built for transformation. Unfiltered, fierce, and human.
             error: null, // Clear any previous error
           }
         }));
-        console.log(`LOAD_EFFECT: Initial load complete for ${personaId}.`); // Keep this for clarity
         setIsHistoryLoading(false); // Mark initial loading as complete
 
         // Setup real-time listener only if not already attached for this persona
         if (!listenerAttachedRef.current[personaId]) {
-          // console.log(`EFFECT: Attempting to attach listener via getMessages() for ${personaId}`); // REMOVE
           unsubscribeListener = getMessages(
             userId,
             personaId,
-            (newLimitedFirestoreMessages) => {
-              // console.log("LISTENER_CALLBACK: Fired for persona", personaId); // REMOVE
-              // --- Debounce Logic Start ---
-              if (listenerDebounceTimersRef.current[personaId]) {
-                clearTimeout(listenerDebounceTimersRef.current[personaId]!);
-              }
+            (newFirestoreMessages) => {
+              const newDisplayMessages: DisplayMessage[] = newFirestoreMessages.map(msg => ({
+                id: msg.id,
+                sender: msg.role === 'user' ? 'user' : 'ai',
+                content: msg.content,
+                timestamp: msg.createdAt || new Date()
+              }));
 
-              listenerDebounceTimersRef.current[personaId] = setTimeout(async () => { // Make async for the lock logic
-                // console.log("LISTENER_TIMEOUT_CALLBACK: Fired for persona", personaId); // REMOVE
-
-                // --- Check Summarization Lock --- 
-                if (isSummarizingRef.current[personaId]) {
-                  // console.log(`SUMMARIZE_LOCK: Skipping trigger for ${personaId}, already in progress.`); // REMOVE
-                  return;
+              setChatHistories(prev => ({
+                ...prev,
+                [personaId]: {
+                  ...(prev[personaId] || { isAiResponding: false, error: null }),
+                  messages: newDisplayMessages,
                 }
+              }));
 
-                try {
-                  // --- Set Lock --- 
-                  isSummarizingRef.current[personaId] = true;
-                  // console.log(`SUMMARIZE_LOCK: Lock acquired for ${personaId}.`); // REMOVE
-
-                  const newLimitedDisplayMessages: DisplayMessage[] = newLimitedFirestoreMessages.map(msg => ({
-                    id: msg.id,
-                    sender: msg.role === 'user' ? 'user' : 'ai',
-                    content: msg.content,
-                    timestamp: msg.createdAt || new Date()
-                  }));
-
-                  // --- Determine Potential Next State Locally --- 
-                  let potentialNextMessages: DisplayMessage[] = [];
-                  const currentMessages = chatHistories[personaId]?.messages || [];
-
-                  const messageMap = new Map<string, DisplayMessage>();
-                  currentMessages.forEach(msg => messageMap.set(msg.id, msg));
-                  newLimitedDisplayMessages.forEach(newMsg => {
-                    messageMap.set(newMsg.id, newMsg);
-                  });
-                  potentialNextMessages = Array.from(messageMap.values());
-                  potentialNextMessages.sort((a, b) => (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0));
-
-                  // --- Update State --- 
-                  setChatHistories(prev => {
-                    const currentHistory = prev[personaId] || { messages: [], isAiResponding: false, error: null };
-                    const currentMessagesFromState = currentHistory.messages;
-
-                    // Re-calculate the final list *inside* the updater purely for the state comparison
-                    const internalMessageMap = new Map<string, DisplayMessage>();
-                    currentMessagesFromState.forEach(msg => internalMessageMap.set(msg.id, msg));
-                    newLimitedDisplayMessages.forEach(newMsg => {
-                      internalMessageMap.set(newMsg.id, newMsg);
-                    });
-                    const internalPotentialNextMessages = Array.from(internalMessageMap.values());
-                    internalPotentialNextMessages.sort((a, b) => (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0));
-
-                    // Compare based on the internal calculation
-                    const currentIds = currentMessagesFromState.map(m => m.id).join(',');
-                    const nextIds = internalPotentialNextMessages.map(m => m.id).join(',');
-
-                    if (currentMessagesFromState.length === internalPotentialNextMessages.length && currentIds === nextIds) {
-                      return prev; // No actual change
-                    }
-
-                    // Return the new state object using the internally calculated list
-                    return {
-                      ...prev,
-                      [personaId]: {
-                        ...currentHistory,
-                        messages: internalPotentialNextMessages,
-                      }
-                    };
-                  }); // End of setChatHistories
-
-                  // --- Trigger Summarization Check (Using Locally Determined List) ---
-                  if (potentialNextMessages.length > 0) {
-                    // console.log(`LISTENER_SUMMARY_CHECK: Triggering check with ${potentialNextMessages.length} messages.`); // REMOVE
-                    // Await the check/summary process inside the lock
-                    await triggerMemorySummarizationIfNeeded(potentialNextMessages);
-                  }
-                } catch (error) {
-                  console.error("LISTENER_TIMEOUT_CALLBACK: Error during processing:", error); // Keep error logs
-                } finally {
-                  // --- Release Lock --- 
-                  isSummarizingRef.current[personaId] = false;
-                  // console.log(`SUMMARIZE_LOCK: Lock released for ${personaId}.`); // REMOVE
-                }
-
-              }, 100); // Debounce delay
-              // --- Debounce Logic End ---
+              // Trigger summarization check with the new, authoritative list
+              triggerMemorySummarizationIfNeeded(newDisplayMessages);
             },
             (error) => {
               console.error(`REALTIME_LISTENER: Error for ${personaId}:`, error); // Keep error logs
@@ -356,8 +315,6 @@ This persona is built for transformation. Unfiltered, fierce, and human.
             }
           );
           listenerAttachedRef.current[personaId] = true; // Mark listener as attached
-        } else {
-          // console.log(`EFFECT: Listener already attached for ${personaId}, skipping getMessages() call.`); // REMOVE
         }
       } catch (error) {
         console.error(`LOAD_EFFECT: Error during initial load for ${personaId}:`, error); // Keep error logs
@@ -378,7 +335,6 @@ This persona is built for transformation. Unfiltered, fierce, and human.
     // Cleanup function to unsubscribe listener and clear debounce timer
     return () => {
       if (unsubscribeListener) {
-        console.log(`LOAD_EFFECT: Cleaning up real-time listener for ${personaId}.`); // Keep this for clarity
         unsubscribeListener();
       }
       // Clear any pending debounce timer for this persona on cleanup
@@ -415,20 +371,15 @@ This persona is built for transformation. Unfiltered, fierce, and human.
 
   // Debounced summarization trigger function
   const triggerMemorySummarizationIfNeeded = useCallback(async (messageList: DisplayMessage[]) => {
-    // console.log("SUMMARIZE_CHECK: --- Function Entry --- Called with", messageList.length, "messages."); // REMOVE
     if (!currentUser || !currentPersona) {
-      // console.log("SUMMARIZE_CHECK: Skipping - No currentUser or currentPersona."); // REMOVE
       return;
     }
     const userId = currentUser.uid;
     const personaId = currentPersona.id;
-    // console.log(`SUMMARIZE_CHECK: Running for User: ${userId}, Persona: ${personaId}`); // REMOVE
 
     try {
       // Fetch the timestamp of the last successful summary for this persona
-      // console.log("SUMMARIZE_CHECK: Fetching last summary timestamp..."); // REMOVE
       const lastSummaryTimestamp = await getLastSummaryTimestamp(userId, personaId);
-      // console.log("SUMMARIZE_CHECK: Last summary timestamp found:", lastSummaryTimestamp ? lastSummaryTimestamp.toDate() : 'None'); // REMOVE
 
       // Filter messages created after the last summary timestamp
       const relevantMessagesSinceLastSummary = messageList.filter(msg => {
@@ -441,11 +392,9 @@ This persona is built for transformation. Unfiltered, fierce, and human.
       });
 
       const count = relevantMessagesSinceLastSummary.length;
-      // console.log(`SUMMARIZE_CHECK: Found ${count} relevant messages since last summary (Threshold: ${SUMMARIZE_THRESHOLD}).`); // REMOVE
 
       // Check if the count meets the threshold
       if (count >= SUMMARIZE_THRESHOLD) {
-        // console.log("SUMMARIZE_CHECK: Threshold met. Preparing to generate summary..."); // REMOVE
 
         // Map the relevant messages, explicitly typing the result for role
         const messagesToSummarize = relevantMessagesSinceLastSummary.map(msg => ({
@@ -453,50 +402,37 @@ This persona is built for transformation. Unfiltered, fierce, and human.
           content: msg.content
         } as { role: 'user' | 'assistant'; content: string }));
 
-        // console.log("SUMMARIZE_CHECK: Prepared", messagesToSummarize.length, "messages for summarization payload."); // REMOVE
-
         // Select the appropriate AI service based on persona
         const summarizationService = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
         if (!summarizationService) {
           console.error("SUMMARIZE_CHECK: ERROR - Summarization service instance not found for", personaId); // Keep error logs
           throw new Error(`Summarization service not available for ${personaId}`);
         }
-        // console.log("SUMMARIZE_CHECK: Using AI service for:", personaId); // REMOVE
-
         // Generate the summary
-        // console.log("SUMMARIZE_CHECK: Calling summarizationService.generateSummary..."); // REMOVE
         // Destructure summary, tokenCount, AND metadata
         // Ensure the type matches the expected return { summary: string; metadata: SummaryMetadata | null; tokenCount?: number }
         const { summary, tokenCount, metadata } = await summarizationService.generateSummary(messagesToSummarize);
-        // console.log("SUMMARIZE_CHECK: Summary generated. Length:", summary?.length ?? 0, "Token count:", tokenCount ?? 'N/A'); // REMOVE
 
         // Check if the summary is valid before saving
         if (summary && summary.trim().length > 0) {
           const sourceMessageIds = relevantMessagesSinceLastSummary.map(msg => msg.id);
-          // console.log("SUMMARIZE_CHECK: Summary is valid. Calling saveSummary..."); // REMOVE
-          // console.log("SUMMARIZE_CHECK: Source Message IDs:", sourceMessageIds); // REMOVE
+
+          // Ensure metadata is not null before saving
+          const finalMetadata: SummaryMetadata = metadata || {};
 
           // Save the summary AND metadata to Firestore
-          const summaryId = await saveSummary(userId, personaId, summary, sourceMessageIds, tokenCount, metadata);
-          // console.log(`SUMMARIZE_CHECK: Summary saved successfully to Firestore (ID: ${summaryId}).`); // REMOVE
+          const summaryId = await saveSummary(userId, personaId, summary, sourceMessageIds, tokenCount, finalMetadata);
 
           // Update the timestamp marker in the user document
-          // console.log("SUMMARIZE_CHECK: Calling updateLastSummaryTimestamp..."); // REMOVE
           await updateLastSummaryTimestamp(userId, personaId);
-          // console.log("SUMMARIZE_CHECK: Last summary timestamp updated successfully in user document."); // REMOVE
-        } else {
-          // console.log("SUMMARIZE_CHECK: Skipping save - Summary generation returned empty or invalid content."); // REMOVE
         }
-      } else {
-        // Log if the threshold wasn't met
-        // console.log("SUMMARIZE_CHECK: Threshold not met. No summary needed at this time."); // REMOVE
       }
     } catch (error) {
       // Log any errors encountered during the process
       console.error("SUMMARIZE_CHECK: ERROR during summarization check/process:", error); // Keep error logs
     }
-    // console.log("SUMMARIZE_CHECK: --- Function Exit ---"); // REMOVE
   }, [currentUser, currentPersona, SUMMARIZE_THRESHOLD]); // Dependencies remain the same
+
 
   // Main message sending handler
   const handleSendMessage = async (messageContent: string) => {
@@ -508,39 +444,29 @@ This persona is built for transformation. Unfiltered, fierce, and human.
     const userId = currentUser.uid;
     const personaId = currentPersona.id;
 
-    // Mark session as active (resetting summary timestamp)
-    try { await markSessionAsActive(userId, personaId); }
-    catch (error) { console.error("HANDLE_SEND: Failed to mark session active:", error); } // Keep error logs
+    // Reset error states before sending
+    setShowOutOfCreditsNotice(false);
+    setChatHistories(prev => ({
+      ...prev,
+      [personaId]: {
+        ...(prev[personaId] || { messages: [], isAiResponding: false, error: null }),
+        isAiResponding: true,
+        error: null, // Clear previous errors
+      }
+    }));
+    setIsLoadingMessages(true);
 
-    // Set loading state ONLY
-    setChatHistories(prev => {
-      const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: false, error: null };
-      return {
-        ...prev,
-        [personaId]: {
-          ...prevPersonaState,
-          // messages: keep existing messages, listener updates them
-          isAiResponding: true, // Start AI responding indicator
-          error: null, // Clear previous errors
-        }
-      };
-    });
-    setIsLoadingMessages(true); // Sync with isAiResponding
-
-    // Asynchronously save user message to Firestore. Listener will add it.
-    // Use a variable to store the save promise result if needed later, but don't block.
-    const saveUserMessagePromise = saveMessage(userId, personaId, 'user', messageContent)
-      .then(docId => { /* console.log(`HANDLE_SEND: User message saved (ID: ${docId})`) */ }) // Keep commented if desired
-      .catch(err => console.error("HANDLE_SEND: User message save failed:", err)); // Keep error logs
-
-    let finalSystemPrompt = "";
-
-    // Construct and inject dynamic prompt including memory
     try {
-      const currentMessagesForContext = chatHistories[personaId]?.messages || [];
+      // Mark session as active
+      await markSessionAsActive(userId, personaId);
 
-      // --- Adjust Context Fetching based on Priorities ---
-      // Fetch the last 3 summaries (reduced from 5)
+      // Save user message to Firestore. The listener will pick this up.
+      await saveMessage(currentUser, personaId, 'user', messageContent);
+
+      // Construct and inject dynamic prompt including memory
+      let finalSystemPrompt = "";
+
+      const currentMessagesForContext = chatHistories[personaId]?.messages || [];
       const summaries = await getRecentMemorySummaries(userId, personaId, 3);
 
       // --- Extract Summary Text (from fetched summaries) ---
@@ -554,13 +480,12 @@ This persona is built for transformation. Unfiltered, fierce, and human.
       const currentPeopleSet = new Set<string>();
       const currentThemesSet = new Set<string>();
       const currentTriggersSet = new Set<string>();
-      // (Keep eventsSet if needed elsewhere, but don't use for comparison/injection here)
       const eventsSet = new Set<string>();
 
       summariesForMetadata.forEach(s => {
         if (s.metadata) {
           s.metadata.key_people?.forEach(p => currentPeopleSet.add(p));
-          s.metadata.key_events?.forEach(e => eventsSet.add(e)); // Still extract if needed later
+          s.metadata.key_events?.forEach(e => eventsSet.add(e));
           s.metadata.emotional_themes?.forEach(t => currentThemesSet.add(t));
           s.metadata.triggers?.forEach(tr => currentTriggersSet.add(tr));
         }
@@ -588,7 +513,6 @@ This persona is built for transformation. Unfiltered, fierce, and human.
         !setsAreEqual(currentThemesSet, lastMetadata.themes) ||
         !setsAreEqual(currentTriggersSet, lastMetadata.triggers)) {
         metadataChanged = true;
-        // console.log(`[METADATA CHECK] Metadata changed for ${personaId}. Injecting.`); // REMOVE
 
         // Build the metadata string ONLY if changed
         if (currentPeopleSet.size > 0) {
@@ -603,8 +527,6 @@ This persona is built for transformation. Unfiltered, fierce, and human.
           fusedMetadata += `\nRecognized themes from recent summaries include: ${themeList}.`;
           fusedMetadata += `\nWhen relevant, connect the current conversation to these past themes to highlight patterns or growth. For example: "This feeling of [current emotion] echoes the theme of [past theme, e.g., 'abandonment'] we explored regarding [person/situation, if context allows]. What feels different for you this time?" Use your judgment to weave these connections naturally and powerfully, in the Raze voice.`;
         }
-      } else {
-        // console.log(`[METADATA CHECK] Metadata unchanged for ${personaId}. Skipping injection.`); // REMOVE
       }
 
       // --- Update stored metadata for next comparison --- 
@@ -623,24 +545,11 @@ This persona is built for transformation. Unfiltered, fierce, and human.
 
       const baseSystemPrompt = getBaseSystemPrompt(personaId);
 
-
-      // --- Logging Prompt Components --- 
-      // console.log("--- PROMPT CONSTRUCTION START ---"); // REMOVE
-      // console.log("[PROMPT PART 1] Base System Prompt:", baseSystemPrompt.substring(0, 100) + "..."); // REMOVE
-      // console.log("[PROMPT PART 2] Fused Memory (Summaries):\n", fusedMemory || 'None'); // REMOVE
-      // console.log("[PROMPT PART 3] Fused Metadata (People, Triggers, Themes+Recall):\n", fusedMetadata.trim() || 'None'); // REMOVE
-      // console.log("[PROMPT PART 4] Recent Messages:\n", lastMessages || 'None'); // REMOVE
-      // console.log("[PROMPT PART 5] Persona Reminder:", personaReminder || 'None'); // REMOVE
-      // console.log("--- PROMPT CONSTRUCTION END ---"); // REMOVE
-
       // Construct the final prompt
       finalSystemPrompt = `
 ## Context from Recent Summaries & Messages:
 ${fusedMemory || 'No previous summaries available.'}
 ${fusedMetadata.trim()} // Contains People, Triggers, and explicit Theme Recall instructions
-
-## Recent Messages (Short-Term Context):
-${lastMessages}
 
 ## IMPORTANT:Behave and Repsond always following the instructions below:
 ${baseSystemPrompt}
@@ -649,76 +558,56 @@ ${baseSystemPrompt}
 User: ${messageContent}
       `.trim();
 
-      // Log the complete final prompt and estimated token count
-      console.log("\n--- FINAL PROMPT TO BE SENT (START) ---\n", finalSystemPrompt, "\n--- FINAL PROMPT TO BE SENT (END) ---");
       // Rough token estimation: 1 token ~= 4 characters
       const estimatedTokens = Math.ceil(finalSystemPrompt.length / 4);
-      console.log(`>>> Estimated Prompt Token Count: ${estimatedTokens} (Length: ${finalSystemPrompt.length})`);
-
-      // Optional: Log the final prompt for debugging
-      // console.log("DEBUG: Final System Prompt being sent:\n", finalSystemPrompt);
 
       // Inject into the correct service
       const service = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
       service?.setSystemPrompt(finalSystemPrompt);
 
-    } catch (memError) {
-      console.error("HANDLE_SEND: Error during prompt construction:", memError); // Keep error logs
-      // Fallback to base prompt if memory fails
-      const baseSystemPrompt = getBaseSystemPrompt(personaId);
-      const service = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
-      service?.setSystemPrompt(baseSystemPrompt);
-      console.warn("HANDLE_SEND: Falling back to base system prompt."); // KEEP Fallback warning
-    }
+      const aiResponse = await service.sendMessage(messageContent);
+      await saveMessage(currentUser, personaId, 'assistant', aiResponse);
 
-    // Get AI response
-    try {
-      // Wait for user message to potentially save first? No, API call includes the content.
-      await saveUserMessagePromise; // Optional: Wait here if AI needs user message persisted first (unlikely)
-
-      const aiService = personaId === "raze" ? chatGPTServiceRef.current : claudeServiceRef.current;
-      if (!aiService) throw new Error(`AI service instance not found for ${personaId}`);
-
-      // Send the user message content directly to the AI service
-      const aiResponse = await aiService.sendMessage(messageContent);
-
-      // Asynchronously save AI message to Firestore. Listener will pick it up.
-      const saveAiMessagePromise = saveMessage(userId, personaId, 'assistant', aiResponse)
-        .then(docId => { /* console.log(`HANDLE_SEND: AI message saved (ID: ${docId})`) */ }) // Keep commented if desired
-        .catch(err => console.error("HANDLE_SEND: AI message save failed:", err)); // Keep error logs
-
-      // Wait for AI message save before turning off indicator? Optional, maybe better UX.
-      await saveAiMessagePromise;
-
-      // Update UI: Only set isAiResponding to false. Listener handles adding the message.
       setChatHistories(prev => {
         const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: true, error: null };
-        return {
-          ...prev,
-          [personaId]: {
-            ...prevPersonaState,
-            messages: prevPersonaState.messages, // Keep messages as they are
-            isAiResponding: false // Done responding
-          }
-        };
+        return { ...prev, [personaId]: { ...prevPersonaState, isAiResponding: false } };
       });
-      setIsLoadingMessages(false); // Sync with isAiResponding
 
     } catch (error) {
-      console.error(`HANDLE_SEND: Error during AI call or response processing for ${personaId}:`, error); // Keep error logs
-      // Set error state for the persona
-      setChatHistories(prev => {
-        const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: true, error: null };
-        return {
-          ...prev,
-          [personaId]: {
-            ...prevPersonaState,
-            isAiResponding: false, // Stop responding indicator
-            error: error instanceof Error ? error.message : "An unknown error occurred.",
-          }
-        };
-      });
-      setIsLoadingMessages(false); // Ensure loading stops on error
+      const errorMessage = error instanceof Error ? error.message : "Failed to send message. Please try again.";
+      console.error(`HANDLE_SEND: Error during message processing for ${personaId}:`, error);
+
+      // If out of credits, show the dedicated notice instead of the generic error.
+      if (errorMessage.toLowerCase().includes('insufficient credits')) {
+        setShowOutOfCreditsNotice(true);
+        // We set a non-visible error state just to stop the AI responding indicator
+        setChatHistories(prev => {
+          const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: false, error: null };
+          return {
+            ...prev,
+            [personaId]: {
+              ...prevPersonaState,
+              isAiResponding: false,
+              error: 'NoCredits' // Special identifier, not shown to user
+            }
+          };
+        });
+      } else {
+        // Handle other errors normally
+        setChatHistories(prev => {
+          const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: false, error: null };
+          return {
+            ...prev,
+            [personaId]: {
+              ...prevPersonaState,
+              isAiResponding: false,
+              error: errorMessage,
+            }
+          };
+        });
+      }
+    } finally {
+      setIsLoadingMessages(false);
     }
   };
 
@@ -728,7 +617,6 @@ User: ${messageContent}
     if (persona.id === currentPersona.id) {
       return;
     }
-    console.log(`PERSONA_SELECT: Switching from ${currentPersona.id} to ${persona.id}`); // KEEP Persona switch log
     setCurrentPersona(persona);
     setIsHistoryLoading(true); // Start loading indicator for new persona history
   };
@@ -742,7 +630,8 @@ User: ${messageContent}
   }, []);
 
   // Conditional Rendering for Error State
-  if (currentChat.error && !isHistoryLoading) {
+  // Do not show the generic error view if the specific 'OutOfCreditsNotice' is shown.
+  if (currentChat.error && currentChat.error !== 'NoCredits' && !isHistoryLoading) {
     return (
       <div className="flex items-center justify-center h-[100dvh]">
         <div className="text-red-500 text-center">
@@ -770,61 +659,43 @@ User: ${messageContent}
           ref={chatContainerRef}
           className="flex-1 overflow-y-auto px-4 pt-4 md:pt-6 pb-4 space-y-4 overscroll-contain w-full"
         >
-          {/* Show loader only during initial history load */}
-          {showLoadingIndicator && (
-            <div
-              className="flex justify-center items-center h-full"
-              role="status"
-              aria-label="Loading chat history..."
-            >
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          )}
-          {/* Show welcome messages only if not loading and no messages exist */}
-          {!isHistoryLoading && currentChat.messages.length === 0 && (
+          {/* Show the out of credits notice if applicable */}
+          {showOutOfCreditsNotice ? (
+            <OutOfCreditsNotice onClose={() => setShowOutOfCreditsNotice(false)} />
+          ) : (
             <>
-              <ChatMessage
-                message={{
-                  id: "welcome",
-                  content:
-                    currentPersona.id === "raze"
-                      ? introPrompt
-                      : reynaIntroPrompt,
-                  sender: "ai",
-                  timestamp: new Date(),
-                }}
-                isLatest={false}
-                currentPersona={currentPersona}
-              />
-              <ChatMessage
-                message={{
-                  id: "welcome2",
-                  content:
-                    currentPersona.id === "raze"
-                      ? followUpPrompt
-                      : raynaFollowUpPrompt,
-                  sender: "ai",
-                  timestamp: new Date(),
-                }}
-                isLatest={false}
-                currentPersona={currentPersona}
-              />
+              {/* Show loader only during initial history load */}
+              {showLoadingIndicator && (
+                <div
+                  className="flex justify-center items-center h-full"
+                  role="status"
+                  aria-label="Loading chat history..."
+                >
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              )}
+              {/* Show welcome messages only if not loading and no messages exist */}
+              {!showLoadingIndicator && currentChat.messages.length === 0 && (
+                <div className="text-center text-muted-foreground py-8">
+                  <p>{introPrompt}</p>
+                </div>
+              )}
+              {/* Render chat messages */}
+              {currentChat.messages.map((message, index) => (
+                <ChatMessage
+                  key={message.id || index}
+                  message={message}
+                  isLatest={index === currentChat.messages.length - 1}
+                  isLastMessage={
+                    index === currentChat.messages.length - 1 &&
+                    !currentChat.isAiResponding
+                  }
+                />
+              ))}
+              {currentChat.isAiResponding && <TypingIndicator />}
+              <div ref={messagesEndRef} />
             </>
           )}
-          {/* Render messages if not loading */}
-          {!isHistoryLoading &&
-            currentChat.messages.map((message, index) => (
-              <ChatMessage
-                key={message.id}
-                message={message}
-                isLatest={index === currentChat.messages.length - 1}
-                currentPersona={currentPersona}
-              />
-            ))}
-          {/* Show typing indicator if AI is responding */}
-          {currentChat.isAiResponding && <TypingIndicator />}
-          {/* Anchor for scrolling */}
-          <div ref={messagesEndRef} />
         </div>
 
         {/* Fixed chat input area */}
@@ -832,6 +703,7 @@ User: ${messageContent}
           <ChatInput
             onSendMessage={handleSendMessage}
             isAiResponding={currentChat.isAiResponding}
+            currentPersonaId={currentPersona.id}
           />
         </div>
       </div>

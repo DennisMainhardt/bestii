@@ -13,7 +13,7 @@ const Testimonials = () => {
       content: "This bestie literally saved my sanity. Called out my toxic relationship patterns so hard I cried for an hour... then finally dumped the guy who was treating me like trash. Best decision ever! Now I actually have standards. 💪",
       rating: 5,
       emoji: "💕",
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b13c?w=400&h=400&fit=crop&crop=face",
+      avatar: "https://images.unsplash.com/photo-1623317147116-304818702516?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       impact: "Found her voice",
       transformation: "From doormat to queen",
       timeframe: "3 weeks"

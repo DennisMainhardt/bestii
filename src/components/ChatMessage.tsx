@@ -6,13 +6,14 @@ import { MessageType } from "@/types/message";
 interface ChatMessageProps {
   message: MessageType;
   isLatest: boolean;
+  isLastMessage: boolean;
   currentPersona?: {
     id: string;
     name: string;
   };
 }
 
-const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
+const ChatMessage = ({ message, isLatest, isLastMessage }: ChatMessageProps) => {
   const messageRef = useRef<HTMLDivElement>(null);
   const isUser = message.sender === "user";
 
@@ -38,7 +39,6 @@ const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const isLastMessage = isLatest;
 
   return (
     <div

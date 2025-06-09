@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils';
 import ThemeToggle from './ThemeToggle';
 import { useAuth } from '@/context/AuthContext';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/firebase/firebaseConfig';
+import { auth, db } from '@/firebase/firebaseConfig';
+import { doc, onSnapshot } from "firebase/firestore";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +27,7 @@ const Header = () => {
   const [menuState, setMenuState] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, credits, monthlyResets } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -140,6 +141,15 @@ const Header = () => {
                           </p>
                         </div>
                       </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground space-y-1">
+                        <p>
+                          Credits: <span className="font-semibold text-primary">{credits !== null ? credits : '-'}</span>
+                        </p>
+                        <p>
+                          Daily Resets Left: <span className="font-semibold text-primary">{monthlyResets !== null ? 6 - monthlyResets : '-'}</span>
+                        </p>
+                      </div>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                         <Settings className="mr-2 h-4 w-4" />

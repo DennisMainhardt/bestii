@@ -14,11 +14,55 @@ import {
   limitToLast,
   Timestamp,
   getDocs,
+  runTransaction,
 } from 'firebase/firestore';
 import { app } from '@/firebase/firebaseConfig'; // Assuming app is exported from your config
+import { User } from 'firebase/auth';
 
 // Initialize Firestore
 const db = getFirestore(app);
+
+/**
+ * Checks if a user has enough credits and decrements their credit count.
+ * This function uses a transaction to ensure atomic read/write.
+ * @param userId The UID of the user.
+ * @returns A promise that resolves to true if the credit was successfully decremented, false otherwise.
+ */
+export const checkAndDecrementCredits = async (
+  userId: string
+): Promise<boolean> => {
+  if (!userId) {
+    throw new Error('User ID is required to check and decrement credits.');
+  }
+
+  const userDocRef = doc(db, 'users', userId);
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const userDoc = await transaction.get(userDocRef);
+
+      if (!userDoc.exists()) {
+        throw new Error('User document not found.');
+      }
+
+      const userData = userDoc.data();
+      const currentCredits = userData.credits as number;
+
+      if (currentCredits > 0) {
+        transaction.update(userDocRef, { credits: currentCredits - 1 });
+      } else {
+        throw new Error('Insufficient credits.');
+      }
+    });
+
+    return true; // Transaction was successful
+  } catch (error) {
+    console.error('Credit check/decrement transaction failed:', error);
+    // The error could be 'Insufficient credits' or a Firestore error.
+    // The calling function should handle this.
+    return false;
+  }
+};
 
 export interface Message {
   id: string; // Document ID
@@ -36,22 +80,34 @@ export interface MemorySummary {
 
 /**
  * Saves a message to the user's message subcollection in Firestore.
- * @param userId - The UID of the user.
+ * @param user - The user object.
  * @param personaId - The ID of the persona.
  * @param role - The role of the message sender ('user' or 'assistant').
  * @param content - The text content of the message.
  */
 export const saveMessage = async (
-  userId: string,
+  user: User,
   personaId: string,
   role: 'user' | 'assistant',
   content: string
 ): Promise<string | null> => {
-  if (!userId || !personaId) {
+  const ADMIN_EMAIL = 'dennis.mainhardt@gmail.com';
+
+  if (!user?.uid || !personaId) {
     throw new Error('User ID and Persona ID are required to save a message.');
   }
+
+  // Only decrement credits for non-admin user messages
+  if (role === 'user' && user.email !== ADMIN_EMAIL) {
+    const hasCredits = await checkAndDecrementCredits(user.uid);
+    if (!hasCredits) {
+      // Throw a specific error to be caught by the UI
+      throw new Error('Insufficient credits.');
+    }
+  }
+
   try {
-    const messagesColRef = collection(db, 'users', userId, 'messages');
+    const messagesColRef = collection(db, 'users', user.uid, 'messages');
     const docRef = await addDoc(messagesColRef, {
       role: role,
       content: content,

@@ -1,18 +1,11 @@
 import { MessageType } from '@/types/message';
+import { SummaryMetadata } from '@/types/memory';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 interface ChatGPTMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
-}
-
-// Define the interface for the structured metadata
-interface SummaryMetadata {
-  key_people: string[];
-  key_events: string[];
-  emotional_themes: string[];
-  triggers: string[];
 }
 
 export class ChatGPTService {

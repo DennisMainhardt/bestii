@@ -36,7 +36,7 @@ const ChatHeader = ({
 }: ChatHeaderProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, credits, monthlyResets } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -69,7 +69,7 @@ const ChatHeader = ({
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden border border-orange-200/50">
                 <img
-                  src={`/public/${currentPersona.id}.png`}
+                  src={`/${currentPersona.id}.png`}
                   alt={currentPersona.name}
                   className="w-full h-full object-cover"
                 />
@@ -120,6 +120,15 @@ const ChatHeader = ({
                       </p>
                     </div>
                   </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground space-y-1">
+                    <p>
+                      Credits: <span className="font-semibold text-primary">{credits !== null ? credits : '-'}</span>
+                    </p>
+                    <p>
+                      Daily Resets Left: <span className="font-semibold text-primary">{monthlyResets !== null ? 6 - monthlyResets : '-'}</span>
+                    </p>
+                  </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                     <Settings className="mr-2 h-4 w-4" />
