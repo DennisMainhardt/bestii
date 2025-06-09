@@ -15,6 +15,10 @@ import {
   Timestamp,
   getDocs,
   runTransaction,
+  startAfter,
+  limit,
+  DocumentSnapshot,
+  QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { app } from '@/firebase/firebaseConfig'; // Assuming app is exported from your config
 import { User } from 'firebase/auth';
@@ -282,4 +286,48 @@ export const getMemorySummary = async (
     console.error('Error fetching memory summary:', error);
     return null; // Return null on error
   }
+};
+
+/**
+ * Fetches a page of messages for a user and persona, ordered by newest first (for pagination/infinite scroll).
+ * @param userId - The UID of the user.
+ * @param personaId - The ID of the persona.
+ * @param pageSize - Number of messages to fetch per page.
+ * @param startAfterDoc - (Optional) Firestore QueryDocumentSnapshot to start after (for pagination).
+ * @returns Promise resolving to an array of Message objects, each with a docSnapshot property for further pagination.
+ */
+export const fetchMessagesPage = async (
+  userId: string,
+  personaId: string,
+  pageSize: number,
+  startAfterDoc?: QueryDocumentSnapshot | null // Firestore QueryDocumentSnapshot or null
+) => {
+  if (!userId || !personaId) {
+    throw new Error('User ID and Persona ID are required.');
+  }
+  const messagesColRef = collection(db, 'users', userId, 'messages');
+  let q = query(
+    messagesColRef,
+    where('persona', '==', personaId),
+    orderBy('createdAt', 'desc'),
+    limit(pageSize)
+  );
+  if (startAfterDoc) {
+    q = query(
+      messagesColRef,
+      where('persona', '==', personaId),
+      orderBy('createdAt', 'desc'),
+      startAfter(startAfterDoc),
+      limit(pageSize)
+    );
+  }
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    role: doc.data().role as 'user' | 'assistant',
+    content: doc.data().content as string,
+    persona: doc.data().persona as string,
+    createdAt: doc.data().createdAt?.toDate() ?? null,
+    docSnapshot: doc, // Keep the snapshot for pagination
+  }));
 };

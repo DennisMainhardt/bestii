@@ -14,7 +14,8 @@ import {
   saveMessage,
   getMessages,
   getInitialMessages,
-  Message as FirestoreMessage
+  Message as FirestoreMessage,
+  fetchMessagesPage,
 } from "@/services/messageService";
 import {
   saveSessionMemorySummary,
@@ -132,6 +133,8 @@ IMPORTANT: You have access to full emotional memory of the user use it to fully 
   }
 };
 
+const PAGE_SIZE = 30;
+
 const Chat = () => {
   const { currentUser } = useAuth();
   const [currentPersona, setCurrentPersona] = useState<Persona>({
@@ -167,6 +170,11 @@ const Chat = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatGPTServiceRef = useRef<ChatGPTService | null>(null);
   const claudeServiceRef = useRef<ClaudeService | null>(null);
+
+  const [paginatedMessages, setPaginatedMessages] = useState<DisplayMessage[]>([]);
+  const [paginationCursor, setPaginationCursor] = useState<import('firebase/firestore').QueryDocumentSnapshot | null>(null); // Firestore QueryDocumentSnapshot
+  const [isPaginating, setIsPaginating] = useState(false);
+  const [allMessagesLoaded, setAllMessagesLoaded] = useState(false);
 
   // --- Effects ---
 
@@ -243,108 +251,69 @@ This persona is built for transformation. Unfiltered, fierce, and human.
 
   }, [currentPersona.id, currentUser]); // Dependencies: only persona and user
 
-  // Effect for loading initial history and setting up real-time listener
+  // Initial paginated load
   useEffect(() => {
     if (!currentUser?.uid || !currentPersona?.id) {
-      setIsHistoryLoading(false); // Ensure loading stops if no user/persona
+      setIsHistoryLoading(false);
       return;
     }
-    const userId = currentUser.uid;
-    const personaId = currentPersona.id;
-    let unsubscribeListener: (() => void) | null = null;
-
-    const loadAndListen = async () => {
+    let cancelled = false;
+    const loadInitialPage = async () => {
       setIsHistoryLoading(true);
-      listenerAttachedRef.current[personaId] = false; // Reset listener flag
-
+      setAllMessagesLoaded(false);
+      setPaginationCursor(null);
       try {
-        // Fetch initial full message history
-        const initialFirestoreMessages = await getInitialMessages(userId, personaId);
-        // Convert Firestore messages to display format
-        const initialDisplayMessages: DisplayMessage[] = initialFirestoreMessages.map(msg => ({
+        const page = await fetchMessagesPage(currentUser.uid, currentPersona.id, PAGE_SIZE);
+        if (cancelled) return;
+        const displayMessages: DisplayMessage[] = page.map(msg => ({
           id: msg.id,
           sender: msg.role === 'user' ? 'user' : 'ai',
           content: msg.content,
-          timestamp: msg.createdAt || new Date() // Handle potential null timestamp
+          timestamp: msg.createdAt || new Date(),
         }));
-
-        // Update state with initial messages
-        setChatHistories(prev => ({
-          ...prev,
-          [personaId]: {
-            ...(prev[personaId] || { isAiResponding: false }), // Preserve existing state if any
-            messages: initialDisplayMessages,
-            error: null, // Clear any previous error
-          }
-        }));
-        setIsHistoryLoading(false); // Mark initial loading as complete
-
-        // Setup real-time listener only if not already attached for this persona
-        if (!listenerAttachedRef.current[personaId]) {
-          unsubscribeListener = getMessages(
-            userId,
-            personaId,
-            (newFirestoreMessages) => {
-              const newDisplayMessages: DisplayMessage[] = newFirestoreMessages.map(msg => ({
-                id: msg.id,
-                sender: msg.role === 'user' ? 'user' : 'ai',
-                content: msg.content,
-                timestamp: msg.createdAt || new Date()
-              }));
-
-              setChatHistories(prev => ({
-                ...prev,
-                [personaId]: {
-                  ...(prev[personaId] || { isAiResponding: false, error: null }),
-                  messages: newDisplayMessages,
-                }
-              }));
-
-              // Trigger summarization check with the new, authoritative list
-              triggerMemorySummarizationIfNeeded(newDisplayMessages);
-            },
-            (error) => {
-              console.error(`REALTIME_LISTENER: Error for ${personaId}:`, error); // Keep error logs
-              setChatHistories(prev => ({
-                ...prev,
-                [personaId]: {
-                  ...(prev[personaId] || { messages: [], isAiResponding: false }),
-                  error: `Real-time updates failed: ${error.message}`,
-                }
-              }));
-            }
-          );
-          listenerAttachedRef.current[personaId] = true; // Mark listener as attached
-        }
-      } catch (error) {
-        console.error(`LOAD_EFFECT: Error during initial load for ${personaId}:`, error); // Keep error logs
-        // Set error state for the specific persona
-        setChatHistories(prev => ({
-          ...prev,
-          [personaId]: {
-            ...(prev[personaId] || { messages: [], isAiResponding: false }),
-            error: error instanceof Error ? `Failed to load history: ${error.message}` : "Unknown error loading history",
-          }
-        }));
+        setPaginatedMessages(displayMessages.reverse()); // oldest at top
+        setPaginationCursor(page.length > 0 ? page[page.length - 1].docSnapshot : null);
+        setAllMessagesLoaded(page.length < PAGE_SIZE);
         setIsHistoryLoading(false);
+      } catch (e) {
+        setIsHistoryLoading(false);
+        setAllMessagesLoaded(true);
       }
     };
-
-    loadAndListen();
-
-    // Cleanup function to unsubscribe listener and clear debounce timer
-    return () => {
-      if (unsubscribeListener) {
-        unsubscribeListener();
-      }
-      // Clear any pending debounce timer for this persona on cleanup
-      if (listenerDebounceTimersRef.current[personaId]) {
-        clearTimeout(listenerDebounceTimersRef.current[personaId]!);
-        listenerDebounceTimersRef.current[personaId] = null;
-      }
-      listenerAttachedRef.current[personaId] = false; // Reset flag on cleanup
-    };
+    loadInitialPage();
+    return () => { cancelled = true; };
   }, [currentUser, currentPersona.id]);
+
+  // Scroll handler for infinite scroll
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    const handleScroll = async () => {
+      if (container.scrollTop === 0 && !isPaginating && !allMessagesLoaded && paginationCursor) {
+        setIsPaginating(true);
+        try {
+          const page = await fetchMessagesPage(currentUser.uid, currentPersona.id, PAGE_SIZE, paginationCursor);
+          if (page.length === 0) {
+            setAllMessagesLoaded(true);
+          } else {
+            const displayMessages: DisplayMessage[] = page.map(msg => ({
+              id: msg.id,
+              sender: msg.role === 'user' ? 'user' : 'ai',
+              content: msg.content,
+              timestamp: msg.createdAt || new Date(),
+            }));
+            setPaginatedMessages(prev => [...displayMessages.reverse(), ...prev]);
+            setPaginationCursor(page.length > 0 ? page[page.length - 1].docSnapshot : paginationCursor);
+            if (page.length < PAGE_SIZE) setAllMessagesLoaded(true);
+          }
+        } finally {
+          setIsPaginating(false);
+        }
+      }
+    };
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [currentUser, currentPersona.id, isPaginating, allMessagesLoaded, paginationCursor]);
 
   // Convenience getter for the current persona's chat state
   const currentChat = chatHistories[currentPersona.id] || {
@@ -568,6 +537,18 @@ User: ${messageContent}
       const aiResponse = await service.sendMessage(messageContent);
       await saveMessage(currentUser, personaId, 'assistant', aiResponse);
 
+      // After sending, reload the latest page
+      const page = await fetchMessagesPage(currentUser.uid, currentPersona.id, PAGE_SIZE);
+      const displayMessages: DisplayMessage[] = page.map(msg => ({
+        id: msg.id,
+        sender: msg.role === 'user' ? 'user' : 'ai',
+        content: msg.content,
+        timestamp: msg.createdAt || new Date(),
+      }));
+      setPaginatedMessages(displayMessages.reverse());
+      setPaginationCursor(page.length > 0 ? page[page.length - 1].docSnapshot : null);
+      setAllMessagesLoaded(page.length < PAGE_SIZE);
+      setIsLoadingMessages(false);
       setChatHistories(prev => {
         const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: true, error: null };
         return { ...prev, [personaId]: { ...prevPersonaState, isAiResponding: false } };
@@ -659,6 +640,11 @@ User: ${messageContent}
           ref={chatContainerRef}
           className="flex-1 overflow-y-auto px-4 pt-4 md:pt-6 pb-4 space-y-4 overscroll-contain w-full"
         >
+          {isPaginating && (
+            <div className="flex justify-center items-center py-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            </div>
+          )}
           {/* Show the out of credits notice if applicable */}
           {showOutOfCreditsNotice ? (
             <OutOfCreditsNotice onClose={() => setShowOutOfCreditsNotice(false)} />
@@ -675,19 +661,19 @@ User: ${messageContent}
                 </div>
               )}
               {/* Show welcome messages only if not loading and no messages exist */}
-              {!showLoadingIndicator && currentChat.messages.length === 0 && (
+              {!showLoadingIndicator && paginatedMessages.length === 0 && (
                 <div className="text-center text-muted-foreground py-8">
                   <p>{introPrompt}</p>
                 </div>
               )}
               {/* Render chat messages */}
-              {currentChat.messages.map((message, index) => (
+              {paginatedMessages.map((message, index) => (
                 <ChatMessage
                   key={message.id || index}
                   message={message}
-                  isLatest={index === currentChat.messages.length - 1}
+                  isLatest={index === paginatedMessages.length - 1}
                   isLastMessage={
-                    index === currentChat.messages.length - 1 &&
+                    index === paginatedMessages.length - 1 &&
                     !currentChat.isAiResponding
                   }
                 />
