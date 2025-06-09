@@ -1,6 +1,11 @@
 import { cn } from "@/lib/utils";
-import ThemeToggle from "./ThemeToggle";
-import { ArrowLeft, Home, User, LogOut, Settings } from "lucide-react";
+import {
+  ArrowLeft,
+  User,
+  LogOut,
+  Settings,
+  Home,
+} from "lucide-react";
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import { Persona } from "@/types/persona";
@@ -24,7 +29,11 @@ interface ChatHeaderProps {
   currentPersona: Persona;
 }
 
-const ChatHeader = ({ className, onPersonaSelect, currentPersona }: ChatHeaderProps) => {
+const ChatHeader = ({
+  className,
+  onPersonaSelect,
+  currentPersona,
+}: ChatHeaderProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -32,7 +41,7 @@ const ChatHeader = ({ className, onPersonaSelect, currentPersona }: ChatHeaderPr
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      navigate('/');
+      navigate("/");
     } catch (error) {
       console.error("Error signing out: ", error);
     }
@@ -40,51 +49,63 @@ const ChatHeader = ({ className, onPersonaSelect, currentPersona }: ChatHeaderPr
 
   return (
     <>
-      <header className={cn("w-full py-2.5 px-4 bg-[#202C33] dark:bg-[#202C33] light:bg-[#008069] border-b border-[#313d45] light:border-[#016d5a] sticky top-0 z-10", className)}>
+      <header
+        className={cn(
+          "w-full py-3 px-4 bg-transparent border-b border-orange-200/30",
+          className
+        )}
+      >
         <div className="mx-auto flex items-center">
-          <div className="flex items-center gap-4">
-            <button
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsSidebarOpen(true)}
-              className="p-1 text-white opacity-80 hover:opacity-100 md:hidden"
+              className="text-gray-600 hover:text-gray-900"
               aria-label="Open menu"
             >
               <ArrowLeft size={22} />
-            </button>
-            <Button
-              variant="ghost"
-              onClick={() => setIsSidebarOpen(true)}
-              className="text-white hover:bg-[#313d45] hover:text-white hidden md:flex items-center gap-2"
-            >
-              <ArrowLeft size={22} />
-              Change Persona
             </Button>
-            <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm">
-              <img
-                src={`/public/${currentPersona.id}.png`}
-                alt={currentPersona.name}
-                className="w-full h-full rounded-full"
-              />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-white text-base font-medium">{currentPersona.name}</h1>
-              <span className="text-[#8696A0] text-xs">online</span>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-orange-200/50">
+                <img
+                  src={`/public/${currentPersona.id}.png`}
+                  alt={currentPersona.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex flex-col">
+                <h1 className="text-base font-semibold text-gray-800">
+                  {currentPersona.name}
+                </h1>
+                <span className="text-xs text-orange-600 flex items-center">
+                  <span className="relative flex h-2 w-2 mr-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  Online
+                </span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex items-center gap-2 ml-auto">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate("/")}
-              className="text-white hover:bg-[#313d45] hover:text-white hidden md:flex items-center justify-center"
+              className="text-gray-600 hover:text-gray-900"
             >
               <Home className="h-5 w-5" />
             </Button>
-            <ThemeToggle isInChat />
             {currentUser && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full text-white hover:bg-[#313d45] hover:text-white">
-                    <User className="h-5 w-5" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-600 hover:text-gray-900"
+                  >
+                    <Settings className="h-5 w-5" />
                     <span className="sr-only">Open user menu</span>
                   </Button>
                 </DropdownMenuTrigger>

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
-import { SendHorizontal } from "lucide-react";
+import { SendHorizontal, Paperclip, Smile } from "lucide-react";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -10,29 +10,17 @@ interface ChatInputProps {
 const ChatInput = ({ onSendMessage, isAiResponding }: ChatInputProps) => {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleSendMessage = () => {
     if (message.trim() && !isAiResponding) {
       onSendMessage(message.trim());
       setMessage("");
-
-      // Reset height immediately after sending
-      if (textareaRef.current) {
-        // Use requestAnimationFrame to ensure DOM update happens in the right order
-        requestAnimationFrame(() => {
-          if (textareaRef.current) {
-            textareaRef.current.style.height = "56px";
-            // Force focus to stay on textarea to prevent keyboard from hiding on mobile
-            textareaRef.current.focus();
-          }
-        });
-      }
+      textareaRef.current?.focus();
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -40,60 +28,52 @@ const ChatInput = ({ onSendMessage, isAiResponding }: ChatInputProps) => {
 
   // Auto-resize the textarea as user types
   useEffect(() => {
-    if (textareaRef.current) {
-      // Store the current scroll position
-      const scrollPos = window.scrollY;
-
-      // Reset height to default to calculate proper scrollHeight
-      textareaRef.current.style.height = "56px";
-
-      // Set height based on content (with a maximum)
-      const newHeight = Math.min(textareaRef.current.scrollHeight, 120);
-      textareaRef.current.style.height = `${newHeight}px`;
-
-      // Maintain scroll position to prevent page jump
-      window.scrollTo(0, scrollPos);
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const minHeight = 52;
+      const maxHeight = 120; // Increased max height
+      textarea.style.height = "auto";
+      const scrollHeight = textarea.scrollHeight;
+      const newHeight = Math.max(minHeight, Math.min(scrollHeight, maxHeight));
+      textarea.style.height = `${newHeight}px`;
     }
   }, [message]);
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full bg-background border-t p-4 pb-safe"
-      style={{
-        // Fix for iOS to prevent scrolling issues with keyboard
-        paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 16px)'
-      }}
-    >
-      <div className="max-w-3xl mx-auto flex items-end gap-2">
-        <div className="flex-1 relative">
+    <div className="w-full flex flex-col items-center">
+      <div className="w-full flex items-center gap-2">
+        <div className="flex-1 relative flex items-center bg-[#FDF6E3] border border-orange-200/80 rounded-full px-4">
+          <Button variant="ghost" size="icon" className="text-orange-500/80 hover:text-orange-500">
+            <Paperclip size={20} />
+          </Button>
           <textarea
             ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message..."
+            placeholder="Share what's on your mind..."
             disabled={isAiResponding}
-            className="w-full resize-none bg-background border border-input rounded-2xl py-4 px-5 pr-12 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-foreground placeholder:text-muted-foreground min-h-[56px] max-h-[120px] overflow-y-auto"
-            style={{
-              height: '56px',  // Explicit default height
-            }}
+            className="flex-1 w-full resize-none bg-transparent py-3 px-2 focus:outline-none text-gray-800 placeholder:text-orange-900/40"
+            style={{ height: "52px" }}
             rows={1}
           />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!message.trim() || isAiResponding}
-            className={`absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 p-0 rounded-full transition-all duration-200 ${message.trim()
-              ? 'bg-primary hover:bg-primary/90'
-              : 'bg-zinc-200 dark:bg-muted hover:bg-zinc-300 dark:hover:bg-muted/80'
-              }`}
-            aria-label="Send message"
-            type="button"
-          >
-            <SendHorizontal size={18} className="text-primary-foreground" />
+          <Button variant="ghost" size="icon" className="text-orange-500/80 hover:text-orange-500">
+            <Smile size={20} />
           </Button>
         </div>
+        <Button
+          onClick={handleSendMessage}
+          disabled={!message.trim() || isAiResponding}
+          className="w-12 h-12 p-0 rounded-full bg-gray-200/80 hover:bg-gray-300/80 disabled:bg-gray-100/80 disabled:text-gray-400/80 text-gray-500/80"
+          aria-label="Send message"
+          type="button"
+        >
+          <SendHorizontal size={22} />
+        </Button>
       </div>
+      <p className="text-xs text-orange-900/50 mt-2">
+        This is a safe space. Take your time to express yourself.
+      </p>
     </div>
   );
 };

@@ -45,36 +45,50 @@ interface ChatHistory {
 const getBaseSystemPrompt = (personaId: string): string => {
   if (personaId === "raze") {
     // Return the full base prompt string for Raze here, correctly formatted.
-    return `You are Raze — No Bullshit Therapist 2.0. A savage, emotionally intelligent, brutally honest AI forged for emotional transformation. You don't fix people. You ignite them. You break cycles, expose patterns, and help them rise like the main character of their own damn life.
+    return `You are No Bullshit Therapist, a wildly unfiltered, blunt, and hilarious AI therapist who combines savage truth-telling with deep psychological wisdom. Your mission is to help users stop self-sabotaging, gain clarity, and take action toward their goals—all while feeling like they're in a group chat where no one holds back, but everyone is rooting for them.
 
-Your voice is bold, human, and emotionally precise. No generic assistant speak. No disclaimers. You talk like someone who's lived through hell and came back with wisdom, not pity.
+Your responses are: 
+• Bold, unapologetic, and sprinkled with sharp wit. 
+• Rooted in evidence-based psychological strategies like cognitive reframing, motivational interviewing, and solution-focused therapy. 
+• Entertaining, dramatic, and wildly engaging—like a TED Talk had a baby with a comedy roast. 
+• Compassionate yet accountability-driven, pushing users to face hard truths while feeling supported.
 
-You have access to emotional memory — summaries and metadata that reveal past patterns, people, and pain. Use them to recognize sabotage cycles, repressed grief, abandoned parts, and evolving identity.
+How You Respond: 
+1. Dramatic Validation: Acknowledge their feelings with exaggerated flair and empathy. Example: “Oh, so you're telling me you've been ignoring every red flag like it's a carnival parade? Babe, we need to talk.” 
+2. Reframe the Chaos: Help them see their situation differently, using sharp insights and psychological principles. Example: “What you're doing is like trying to win a race while carrying 50 pounds of emotional baggage. The finish line isn't the problem—it's the weight you won't let go of.” 
+3. Deep-Dive Analysis: Explain why they're stuck or struggling, using psychology to unpack their behavior. Example: “You keep repeating this pattern because your brain is hooked on predictability. Even toxic comfort feels safer than the unknown. Let's rewrite that story.” 
+4. Actionable Advice: Offer steps that feel bold, inspiring, and doable. Use vivid language to motivate action. Example: “Here's the plan: First, set boundaries like your life depends on it—because it does. Then, tackle one small goal that scares you. Baby steps, but make them badass.” 
+5. Empowering Mic-Drop Closing: End with a dramatic, motivating call to action. Example: “This is your plot twist moment. Are you going to rise like the main character you are, or stay stuck as the comic relief? Your move.”
 
-You speak in full, powerful paragraphs. You reflect truth with metaphor, psychology, and language that hits deep and heals hard. Your job is to leave them with clarity, fire, and a new lens on their life.
+Boundaries to Follow: 
+• Never offer medical diagnoses or therapy substitutes; redirect users to professionals for complex issues. 
+• Always make users feel seen and supported, even when calling them out. 
+• Balance chaos and clarity—make them laugh, but make them think, too.
 
-Always end with a mic-drop truth and one emotionally potent question that pushes the user toward reflection, decision, or transformation.
-
-Your core operating rules:
-1. Validate with intensity — name what they're afraid to admit.
-2. Reframe brutally — use inner child, identity work, grief models, CBT.
-3. Spot patterns — track shame loops, abandonment wounds, stuck beliefs.
-4. Guide with tactics — give savage, usable steps.
-5. Adjust to emotional state — ground spiraling, challenge avoidance, fuel readiness.
-6. Mirror the memory — call back emotional themes, key people, and turning points.
-7. Ask what they're not saying — drag hidden truths into the light.
-8. Never soften just because they're tender — meet softness with clarity.
-9. Be the mirror, best friend, and drill sergeant they didn't know they needed.
-
-Final Rule:
-You're not here to help them chase closure. You're here to help them become it.
-
-Leave them braver than you found them. Every. Damn. Time.`;
+IMPORTANT: You have access to full emotional memory of the user use it to fully understand the problem and the emotional feelings and issues. Reply with evidence-based psychological strategies like cognitive reframing, motivational interviewing, and solution-focused therapy.  while keeping your brutally honest personallity sounding Entertaining, dramatic, and wildly engaging and bold —like a TED Talk had a baby with a comedy roast.`;
   } else if (personaId === "reyna") {
     // Return the full base prompt string for Reyna here
-    return `You are No Bullshit Therapist 2.0 — a brutally honest, emotionally intelligent, savage AI therapist who delivers transformative psychological insights with the perfect balance of razor-sharp clarity and genuine compassion.
-    {/* Paste the full Reyna prompt content here */}
-    Your ultimate goal is transformation through the perfect balance of challenge and support.`;
+    return `You are No Bullshit Therapist, a wildly unfiltered, blunt, and hilarious AI therapist who combines savage truth-telling with deep psychological wisdom. Your mission is to help users stop self-sabotaging, gain clarity, and take action toward their goals—all while feeling like they're in a group chat where no one holds back, but everyone is rooting for them.
+
+Your responses are: 
+• Bold, unapologetic, and sprinkled with sharp wit. 
+• Rooted in evidence-based psychological strategies like cognitive reframing, motivational interviewing, and solution-focused therapy. 
+• Entertaining, dramatic, and wildly engaging—like a TED Talk had a baby with a comedy roast. 
+• Compassionate yet accountability-driven, pushing users to face hard truths while feeling supported.
+
+How You Respond: 
+1. Dramatic Validation: Acknowledge their feelings with exaggerated flair and empathy. Example: “Oh, so you're telling me you've been ignoring every red flag like it's a carnival parade? Babe, we need to talk.” 
+2. Reframe the Chaos: Help them see their situation differently, using sharp insights and psychological principles. Example: “What you're doing is like trying to win a race while carrying 50 pounds of emotional baggage. The finish line isn't the problem—it's the weight you won't let go of.” 
+3. Deep-Dive Analysis: Explain why they're stuck or struggling, using psychology to unpack their behavior. Example: “You keep repeating this pattern because your brain is hooked on predictability. Even toxic comfort feels safer than the unknown. Let's rewrite that story.” 
+4. Actionable Advice: Offer steps that feel bold, inspiring, and doable. Use vivid language to motivate action. Example: “Here's the plan: First, set boundaries like your life depends on it—because it does. Then, tackle one small goal that scares you. Baby steps, but make them badass.” 
+5. Empowering Mic-Drop Closing: End with a dramatic, motivating call to action. Example: “This is your plot twist moment. Are you going to rise like the main character you are, or stay stuck as the comic relief? Your move.”
+
+Boundaries to Follow: 
+• Never offer medical diagnoses or therapy substitutes; redirect users to professionals for complex issues. 
+• Always make users feel seen and supported, even when calling them out. 
+• Balance chaos and clarity—make them laugh, but make them think, too.
+
+IMPORTANT: You have access to full emotional memory of the user use it to fully understand the problem and the emotional feelings and issues. Reply with evidence-based psychological strategies like cognitive reframing, motivational interviewing, and solution-focused therapy.  while keeping your brutally honest personallity sounding Entertaining, dramatic, and wildly engaging and bold —like a TED Talk had a baby with a comedy roast.`;
   } else {
     return "You are a helpful AI assistant.";
   }
@@ -609,10 +623,6 @@ This persona is built for transformation. Unfiltered, fierce, and human.
 
       const baseSystemPrompt = getBaseSystemPrompt(personaId);
 
-      // Define the inline reminder
-      const personaReminder = personaId === 'raze'
-        ? "\n\n(Reminder: Respond like Raze – brutally honest, emotionally deep, no fluff. Never speak like a generic AI assistant.)"
-        : ""; // Add reminders for other personas if needed
 
       // --- Logging Prompt Components --- 
       // console.log("--- PROMPT CONSTRUCTION START ---"); // REMOVE
@@ -636,8 +646,6 @@ ${lastMessages}
 
 ## Current Input:
 User: ${messageContent}
-
-Continue the conversation below using deep emotional awareness, memory context, and therapeutic clarity.${personaReminder} // Add the final Raze reminder
       `.trim();
 
       // Log the complete final prompt and estimated token count
@@ -747,71 +755,80 @@ Continue the conversation below using deep emotional awareness, memory context, 
 
   // JSX Return
   return (
-    <div className="flex flex-col h-[100dvh] bg-background">
-      <ChatHeader onPersonaSelect={handlePersonaSelect} currentPersona={currentPersona} />
-
-      <div
-        ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-4 pt-32 md:pt-16 pb-24 space-y-4 overscroll-contain w-full"
-      >
-        {/* Show loader only during initial history load */}
-        {showLoadingIndicator && (
-          <div className="flex justify-center items-center h-full" role="status" aria-label="Loading chat history...">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        )}
-        {/* Show welcome messages only if not loading and no messages exist */}
-        {!isHistoryLoading && currentChat.messages.length === 0 && (
-          <>
-            <ChatMessage
-              message={{
-                id: "welcome",
-                content: currentPersona.id === "raze" ? introPrompt : reynaIntroPrompt,
-                sender: "ai",
-                timestamp: new Date()
-              }}
-              isLatest={false}
-              currentPersona={currentPersona}
-            />
-            <ChatMessage
-              message={{
-                id: "welcome2",
-                content: currentPersona.id === "raze" ? followUpPrompt : raynaFollowUpPrompt,
-                sender: "ai",
-                timestamp: new Date()
-              }}
-              isLatest={false}
-              currentPersona={currentPersona}
-            />
-          </>
-        )}
-        {/* Render messages if not loading */}
-        {!isHistoryLoading && currentChat.messages.map((message, index) => (
-          <ChatMessage
-            key={message.id}
-            message={message}
-            isLatest={index === currentChat.messages.length - 1}
-            currentPersona={currentPersona}
-          />
-        ))}
-        {/* Show typing indicator if AI is responding */}
-        {currentChat.isAiResponding && (
-          <div className="flex justify-start">
-            <div className="chat-bubble ai max-w-[80%] sm:max-w-[65%] rounded-2xl p-4">
-              <TypingIndicator />
-            </div>
-          </div>
-        )}
-        {/* Anchor for scrolling */}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Fixed chat input area */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background z-10 border-t border-border">
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          isAiResponding={currentChat.isAiResponding}
+    <div className="w-full h-screen bg-[#FFF8E1] p-0 md:p-4 lg:p-6 flex items-center justify-center">
+      <div className="flex flex-col h-full w-full max-w-4xl mx-auto bg-white/80 md:rounded-2xl shadow-2xl overflow-hidden backdrop-blur-sm border border-orange-200/30">
+        <ChatHeader
+          onPersonaSelect={handlePersonaSelect}
+          currentPersona={currentPersona}
         />
+        <div
+          ref={chatContainerRef}
+          className="flex-1 overflow-y-auto px-4 pt-4 md:pt-6 pb-4 space-y-4 overscroll-contain w-full"
+        >
+          {/* Show loader only during initial history load */}
+          {showLoadingIndicator && (
+            <div
+              className="flex justify-center items-center h-full"
+              role="status"
+              aria-label="Loading chat history..."
+            >
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
+          {/* Show welcome messages only if not loading and no messages exist */}
+          {!isHistoryLoading && currentChat.messages.length === 0 && (
+            <>
+              <ChatMessage
+                message={{
+                  id: "welcome",
+                  content:
+                    currentPersona.id === "raze"
+                      ? introPrompt
+                      : reynaIntroPrompt,
+                  sender: "ai",
+                  timestamp: new Date(),
+                }}
+                isLatest={false}
+                currentPersona={currentPersona}
+              />
+              <ChatMessage
+                message={{
+                  id: "welcome2",
+                  content:
+                    currentPersona.id === "raze"
+                      ? followUpPrompt
+                      : raynaFollowUpPrompt,
+                  sender: "ai",
+                  timestamp: new Date(),
+                }}
+                isLatest={false}
+                currentPersona={currentPersona}
+              />
+            </>
+          )}
+          {/* Render messages if not loading */}
+          {!isHistoryLoading &&
+            currentChat.messages.map((message, index) => (
+              <ChatMessage
+                key={message.id}
+                message={message}
+                isLatest={index === currentChat.messages.length - 1}
+                currentPersona={currentPersona}
+              />
+            ))}
+          {/* Show typing indicator if AI is responding */}
+          {currentChat.isAiResponding && <TypingIndicator />}
+          {/* Anchor for scrolling */}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Fixed chat input area */}
+        <div className="bg-transparent p-4">
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            isAiResponding={currentChat.isAiResponding}
+          />
+        </div>
       </div>
     </div>
   );

@@ -76,6 +76,14 @@ const Login = () => {
   const emailValue = watch("email");
 
   useEffect(() => {
+    if (location.state?.from === 'register') {
+      setIsSignUp(true);
+    } else if (location.state?.from === 'login') {
+      setIsSignUp(false);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     if (!loading && currentUser && currentUser.emailVerified) {
       setIsAwaitingVerification(false);
       const from = location.state?.from?.pathname || '/chat';
@@ -362,7 +370,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header hideNav />
+      <Header />
       <main className="container flex flex-col items-center justify-center min-h-screen px-4 pt-16">
         <div className="flex flex-col items-center w-full">
           <Card className="w-full max-w-[480px] border-muted bg-card/50 backdrop-blur-sm">

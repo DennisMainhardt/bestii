@@ -2,8 +2,10 @@ import { Flame, Shield, Brain, MessageSquare, Target, Users, Bot, Sparkles, X, C
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 const Features = () => {
+  const navigate = useNavigate();
   // Updated "Pillars" content
   const pillars = [
     {
@@ -329,10 +331,14 @@ const Features = () => {
           </div>
         </div>
 
-        {/* CTA Section */}
-        <div className="text-center mt-24">
-          <Button size="lg" className="bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-12 py-6 text-xl font-bold rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-            <Zap className="mr-3 h-6 w-6" />
+        {/* Final CTA */}
+        <div className="text-center mt-16 md:mt-24">
+          <Button
+            size="lg"
+            className="bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-10 py-6 text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+            onClick={() => navigate("/login", { state: { from: "register" } })}
+          >
+            <MessageSquare className="mr-3 h-6 w-6" />
             Ready to Stop Playing Small?
           </Button>
         </div>

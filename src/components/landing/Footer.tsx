@@ -1,7 +1,22 @@
 import { Heart, MessageCircle, Users, ShieldCheck, HelpCircle, FileText, Mail, Github, Twitter, Instagram } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const navigate = useNavigate();
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    const targetId = href.replace(/.*#/, "");
+    if (href.startsWith("#")) {
+      const targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
     <footer className="bg-footerDarkBrown text-neutral-200 pt-20 pb-12 border-t border-neutral-800">
@@ -10,7 +25,7 @@ const Footer = () => {
           {/* Brand Column */}
           <div className="md:col-span-4">
             <h3 className="text-3xl font-bold bg-gradient-to-r from-coral-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent mb-4 font-display">
-              BestieAI
+              Bestii
             </h3>
             <p className="text-neutral-300 leading-relaxed max-w-sm text-sm">
               Lovingly built by a solo dev on a mission: to give you the radically honest, AI-powered friend we all deserve. Zero judgment, 100% heart.
@@ -21,9 +36,9 @@ const Footer = () => {
           <div className="md:col-span-2">
             <h4 className="font-semibold mb-5 text-neutral-100 tracking-wide">Explore</h4>
             <ul className="space-y-3">
-              <li><a href="#features" className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><MessageCircle size={16} className="mr-2 opacity-70" /> How It Works</a></li>
-              <li><a href="#pricing" className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><Users size={16} className="mr-2 opacity-70" /> Pricing Plans</a></li>
-              <li><a href="#testimonials" className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><Heart size={16} className="mr-2 opacity-70" /> Testimonials</a></li>
+              <li><a href="#features" onClick={(e) => handleNavClick(e, "#features")} className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><MessageCircle size={16} className="mr-2 opacity-70" /> How It Works</a></li>
+              <li><a href="#pricing" onClick={(e) => handleNavClick(e, "#pricing")} className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><Users size={16} className="mr-2 opacity-70" /> Pricing Plans</a></li>
+              <li><a href="#testimonials" onClick={(e) => handleNavClick(e, "#testimonials")} className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><Heart size={16} className="mr-2 opacity-70" /> Testimonials</a></li>
             </ul>
           </div>
 
@@ -31,9 +46,9 @@ const Footer = () => {
           <div className="md:col-span-3">
             <h4 className="font-semibold mb-5 text-neutral-100 tracking-wide">Support & Legal</h4>
             <ul className="space-y-3">
-              <li><a href="#faq" className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><HelpCircle size={16} className="mr-2 opacity-70" /> FAQ</a></li>
-              <li><a href="/privacy" className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><ShieldCheck size={16} className="mr-2 opacity-70" /> Privacy Policy</a></li>
-              <li><a href="/terms" className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><FileText size={16} className="mr-2 opacity-70" /> Terms of Service</a></li>
+              <li><a href="#faq" onClick={(e) => handleNavClick(e, "#faq")} className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><HelpCircle size={16} className="mr-2 opacity-70" /> FAQ</a></li>
+              <li><a href="/privacy" onClick={(e) => handleNavClick(e, "/privacy")} className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><ShieldCheck size={16} className="mr-2 opacity-70" /> Privacy Policy</a></li>
+              <li><a href="/terms" onClick={(e) => handleNavClick(e, "/terms")} className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><FileText size={16} className="mr-2 opacity-70" /> Terms of Service</a></li>
             </ul>
           </div>
 
@@ -41,7 +56,7 @@ const Footer = () => {
           <div className="md:col-span-3">
             <h4 className="font-semibold mb-5 text-neutral-100 tracking-wide">Connect with the Creator</h4>
             <ul className="space-y-3 mb-6">
-              <li><a href="mailto:hello@bestieai.app" className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><Mail size={16} className="mr-2 opacity-70" /> hello@bestieai.app</a></li>
+              <li><a href="mailto:hello@bestii.me" className="text-neutral-300 hover:text-coral-500 transition-colors text-sm flex items-center"><Mail size={16} className="mr-2 opacity-70" /> hello@bestii.me</a></li>
             </ul>
             <h4 className="font-semibold mb-4 text-neutral-200 tracking-wide text-xs">Follow My Journey</h4>
             <div className="flex space-x-4">
@@ -55,7 +70,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-neutral-800 pt-8 flex flex-col sm:flex-row justify-between items-center">
           <p className="text-neutral-400 text-xs">
-            &copy; {currentYear} BestieAI. Crafted with passion & purpose.
+            &copy; {currentYear} Bestii.me. Crafted with passion & purpose.
           </p>
           <p className="text-neutral-400 text-xs mt-3 sm:mt-0 flex items-center">
             Built by a human, for humans, with a whole lotta <Heart size={14} className="mx-1.5 text-red-500 fill-current" />.

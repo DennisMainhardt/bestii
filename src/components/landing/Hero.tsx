@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle, Heart, Coffee, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 // Typing Dots Component
 const TypingDots = () => {
@@ -30,6 +31,7 @@ const TypingDots = () => {
 };
 
 const Hero = () => {
+  const navigate = useNavigate();
   const chatMessages = [
     { id: 1, sender: "ai", text: "Hey there! Feeling a bit... chaotic?" },
     { id: 2, sender: "user", text: "Ugh, you have NO idea. 🙄" },
@@ -90,7 +92,7 @@ const Hero = () => {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-warm-200 rounded-full px-6 py-3 mb-8 shadow-sm">
               <Sparkles className="w-4 h-4 text-warm-600" />
-              <span className="text-sm font-medium text-warm-700">The friend who actually gets your mess ✨</span>
+              <span className="text-sm font-medium text-warm-700">The best friend who actually gets your mess ✨</span>
             </div>
 
             {/* Main heading */}
@@ -109,11 +111,25 @@ const Hero = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start items-center mb-12">
-              <Button size="lg" className="bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-10 py-6 text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-10 py-6 text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto"
+                onClick={() => navigate("/login", { state: { from: "register" } })}
+              >
                 <MessageCircle className="mr-3 h-6 w-6" />
                 Let's Get Real Together
               </Button>
-              <Button variant="outline" size="lg" className="border-2 border-warm-300 text-warm-700 hover:bg-warm-50 px-8 py-6 text-lg font-semibold rounded-full transition-all duration-300 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-2 border-warm-300 text-warm-700 hover:bg-warm-50 px-8 py-6 text-lg font-semibold rounded-full transition-all duration-300 w-full sm:w-auto"
+                onClick={() => {
+                  const featuresSection = document.getElementById("features");
+                  if (featuresSection) {
+                    featuresSection.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
+              >
                 See Why I'm Different
               </Button>
             </div>

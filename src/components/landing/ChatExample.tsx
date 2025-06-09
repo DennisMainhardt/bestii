@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Moon, Award, Drama, Rocket, Users, Zap, Lightbulb, HeartHandshake, Coffee, Sparkles as SparklesIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 const ChatExample = () => {
+  const navigate = useNavigate();
   const colorThemes = {
     moon: {
       iconBg: "bg-blue-100", iconColor: "text-blue-600", textColor: "text-blue-700",
@@ -169,11 +171,15 @@ const ChatExample = () => {
 
         {/* Updated Final CTA */}
         <div className="text-center mt-16 md:mt-20">
-          <Button
-            size="lg"
-            className="bg-gradient-to-r from-warm-600 to-coral-600 hover:from-warm-700 hover:to-coral-700 text-white px-10 py-5 text-lg font-bold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-            Start Your Transformation Today
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-10 py-6 text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              onClick={() => navigate("/login", { state: { from: "register" } })}
+            >
+              Start Your Transformation Today
+            </Button>
+          </div>
         </div>
       </div>
     </section>

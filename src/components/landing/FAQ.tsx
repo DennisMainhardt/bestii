@@ -5,7 +5,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Heart, Shield } from "lucide-react";
+import { MessageSquare, Heart, Shield, Plus, Minus, MessageCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const FAQ = () => {
   const faqs = [
@@ -68,6 +70,13 @@ const FAQ = () => {
     feedback: { name: "When Things Get Real", color: "from-coral-400 to-warm-400" },
     memory: { name: "Building Our Bond", color: "from-warm-400 to-orange-400" },
     support: { name: "Different Types of Support", color: "from-orange-400 to-coral-400" }
+  };
+
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const navigate = useNavigate();
+
+  const toggleFAQ = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
   };
 
   return (
@@ -191,7 +200,11 @@ const FAQ = () => {
             <p className="text-xl mb-8 leading-relaxed">
               The best way to understand this friendship is to experience it. I promise you've never had a conversation quite like this before. 💫
             </p>
-            <Button size="lg" className="bg-white text-warm-600 hover:bg-warm-50 px-12 py-6 text-xl font-bold rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <Button
+              size="lg"
+              className="bg-white text-warm-600 hover:bg-warm-50 px-12 py-6 text-xl font-bold rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+              onClick={() => navigate("/login", { state: { from: "register" } })}
+            >
               <MessageSquare className="mr-3 h-6 w-6" />
               Get Started – It's Free
             </Button>

@@ -1,6 +1,7 @@
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Star, MessageCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Testimonials = () => {
   const testimonials = [
@@ -90,6 +91,8 @@ const Testimonials = () => {
     { number: "4.9/5", label: "Best Friend Rating", icon: "⭐" },
     { number: "24/7", label: "Emotional Support", icon: "🌙" }
   ];
+
+  const navigate = useNavigate();
 
   return (
     <section className="py-24 bg-gradient-to-br from-warm-50 via-coral-50 to-orange-50">
@@ -226,8 +229,12 @@ const Testimonials = () => {
               </div>
             </div>
 
-            <Button size="lg" className="bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-12 py-6 text-xl font-bold rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <MessageSquare className="mr-3 h-6 w-6" />
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-10 py-6 text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              onClick={() => navigate("/login", { state: { from: "register" } })}
+            >
+              <MessageCircle className="mr-3 h-6 w-6" />
               Start Your Transformation Story
             </Button>
           </div>

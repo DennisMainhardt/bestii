@@ -4,6 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 @layer base {
   :root {
     --background: 30 54% 97%;
@@ -86,9 +90,7 @@
     --sidebar-border: 25 20% 20%;
     --sidebar-ring: 15 86% 53%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
@@ -96,6 +98,7 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    scroll-behavior: smooth;
   }
 
   .chat-container {

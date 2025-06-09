@@ -12,7 +12,7 @@ interface ChatMessageProps {
   };
 }
 
-const ChatMessage = ({ message, isLatest, currentPersona }: ChatMessageProps) => {
+const ChatMessage = ({ message, isLatest }: ChatMessageProps) => {
   const messageRef = useRef<HTMLDivElement>(null);
   const isUser = message.sender === "user";
 
@@ -22,30 +22,54 @@ const ChatMessage = ({ message, isLatest, currentPersona }: ChatMessageProps) =>
     }
   }, [isLatest]);
 
+  const text = message.content;
+  const timestamp = new Date(message.timestamp).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const isLastMessage = isLatest;
+
   return (
     <div
       ref={messageRef}
       className={cn(
-        "group flex w-full mb-2 animate-fade-in",
-        isUser ? "justify-end" : "justify-start"
+        "flex w-full mb-4",
+        isUser ? "justify-end" : "justify-start",
+        "animate-fade-in"
       )}
     >
-      <div
-        className={cn(
-          "chat-bubble max-w-[80%] sm:max-w-[65%] rounded-2xl p-4",
-          isUser ? "user" : "ai"
-        )}
-      >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-          {message.content}
-        </p>
-        <div className={cn(
-          "text-[11px] mt-2 flex items-center justify-end gap-1",
-          isUser ? "text-[#AED8BE] dark:text-[#AED8BE] light:text-[#88B68F]" : "text-[#8696A0]"
-        )}>
-          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      <div className={cn("max-w-3xl", isUser ? "order-1" : "order-2")}>
+        <div
+          className={cn(
+            "px-6 py-4 rounded-2xl shadow-sm border",
+            isUser
+              ? "bg-gradient-to-r from-orange-500 to-red-500 text-white border-orange-200"
+              : "bg-white/80 backdrop-blur-sm text-gray-800 border-orange-200",
+            isLastMessage ? "animate-scale-in" : "",
+            "hover:shadow-md transition-all duration-200"
+          )}
+        >
+          <p
+            className={cn(
+              "text-base leading-relaxed whitespace-pre-wrap",
+              isUser ? "text-white" : "text-gray-800"
+            )}
+          >
+            {text}
+          </p>
+        </div>
+
+        <div
+          className={cn(
+            "flex items-center mt-2 px-2",
+            isUser ? "justify-end" : "justify-start"
+          )}
+        >
+          <span className="text-xs text-orange-500 font-medium">
+            {timestamp}
+          </span>
           {isUser && (
-            <CheckCheck size={16} className="text-[#53BDEB] dark:text-[#53BDEB] light:text-[#53BDEB]" />
+            <CheckCheck size={16} className="ml-2 text-orange-400" />
           )}
         </div>
       </div>
