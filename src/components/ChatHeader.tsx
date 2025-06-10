@@ -5,6 +5,7 @@ import {
   LogOut,
   Settings,
   Home,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 import Sidebar from "./Sidebar";
@@ -62,9 +63,9 @@ const ChatHeader = ({
               size="icon"
               onClick={() => setIsSidebarOpen(true)}
               className="text-gray-600 hover:text-gray-900"
-              aria-label="Open menu"
+              aria-label="Select Persona"
             >
-              <ArrowLeft size={22} />
+              <Users size={22} />
             </Button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden border border-orange-200/50">
@@ -94,6 +95,7 @@ const ChatHeader = ({
               size="icon"
               onClick={() => navigate("/")}
               className="text-gray-600 hover:text-gray-900"
+              aria-label="Go to Landing Page"
             >
               <Home className="h-5 w-5" />
             </Button>
@@ -104,6 +106,7 @@ const ChatHeader = ({
                     variant="ghost"
                     size="icon"
                     className="text-gray-600 hover:text-gray-900"
+                    aria-label="Open Settings"
                   >
                     <Settings className="h-5 w-5" />
                     <span className="sr-only">Open user menu</span>

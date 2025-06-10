@@ -13,7 +13,7 @@ function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
       <TooltipProvider>
-        <div className="min-h-screen bg-background">
+        <div className="h-full bg-background">
           <Routes>
             {/* Root route always shows Landing page */}
             <Route path="/" element={<Landing />} />

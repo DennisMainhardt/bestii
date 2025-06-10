@@ -31,7 +31,7 @@ const ChatInput = ({ onSendMessage, isAiResponding, currentPersonaId }: ChatInpu
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
-      const minHeight = 52;
+      const minHeight = 40;
       const maxHeight = 120; // Increased max height
       textarea.style.height = "auto";
       const scrollHeight = textarea.scrollHeight;
@@ -43,7 +43,7 @@ const ChatInput = ({ onSendMessage, isAiResponding, currentPersonaId }: ChatInpu
   return (
     <div className="w-full flex flex-col items-center">
       <div className="w-full flex items-center gap-2">
-        <div className="flex-1 relative flex items-center bg-[#FDF6E3] border border-orange-200/80 rounded-full px-4">
+        <div className="flex-1 relative flex items-center bg-[#FDF6E3] border border-orange-200/80 rounded-full px-3 h-12">
           <Button variant="ghost" size="icon" className="text-orange-500/80 hover:text-orange-500">
             <Paperclip size={20} />
           </Button>
@@ -52,10 +52,10 @@ const ChatInput = ({ onSendMessage, isAiResponding, currentPersonaId }: ChatInpu
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Share what's on your mind..."
+            placeholder="What's on your mind..?"
             disabled={isAiResponding}
-            className="flex-1 w-full resize-none bg-transparent py-3 px-2 focus:outline-none text-gray-800 placeholder:text-orange-900/40"
-            style={{ height: "52px" }}
+            className="flex-1 w-full resize-none bg-transparent py-2 px-1 focus:outline-none text-gray-800 placeholder:text-orange-900/40"
+            style={{ height: "40px" }}
             rows={1}
           />
           <Button variant="ghost" size="icon" className="text-orange-500/80 hover:text-orange-500">

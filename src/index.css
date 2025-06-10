@@ -9,6 +9,11 @@ html {
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
   :root {
     --background: 30 54% 97%;
     --foreground: 24 33% 14%;

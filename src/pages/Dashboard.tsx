@@ -2,7 +2,7 @@ import React from 'react';
 import DashboardNav from '@/components/dashboard/DashboardNav';
 import ProfileSection from '@/components/dashboard/ProfileSection';
 import SubscriptionSection from '@/components/dashboard/SubscriptionSection';
-import Header from '@/components/Header'; // Assuming you have a global Header
+import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate } from 'react-router-dom';
 
@@ -20,10 +20,10 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header hideNav={true} />
-      <div className="container mx-auto px-4 py-8 flex flex-grow mt-16">
+      <DashboardHeader />
+      <div className="container mx-auto px-4 py-8 flex flex-col md:flex-row flex-grow mt-16">
         <DashboardNav activeSection={activeSection} setActiveSection={setActiveSection} />
-        <main className="flex-grow ml-8">
+        <main className="flex-grow mt-8 md:mt-0 md:ml-8">
           {activeSection === 'profile' && <ProfileSection />}
           {activeSection === 'subscription' && <SubscriptionSection />}
         </main>

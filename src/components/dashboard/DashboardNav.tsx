@@ -29,14 +29,14 @@ const DashboardNav: React.FC<DashboardNavProps> = ({ activeSection, setActiveSec
   ];
 
   return (
-    <aside className="w-64 pr-8">
-      <nav className="flex flex-col space-y-2">
+    <aside className="w-full md:w-64 md:pr-8">
+      <nav className="flex flex-row md:flex-col gap-2">
         {navItems.map((item) => (
           <Button
             key={item.id}
             variant={activeSection === item.id ? "default" : "ghost"}
             className={cn(
-              "w-full justify-start",
+              "w-full justify-center md:justify-start",
               activeSection === item.id ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"
             )}
             onClick={() => setActiveSection(item.id as 'profile' | 'subscription')}

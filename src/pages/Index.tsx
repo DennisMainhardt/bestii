@@ -27,10 +27,10 @@ const Index = () => {
       sender: "user",
       timestamp: new Date(),
     };
-    
+
     setMessages((prev) => [...prev, newUserMessage]);
     setIsAiResponding(true);
-    
+
     // Simulate AI response after a delay
     setTimeout(() => {
       const aiResponses = [
@@ -40,16 +40,16 @@ const Index = () => {
         "Thank you for sharing that with me. How have you been coping with these emotions?",
         "I'm here to support you. What would be helpful for you to explore about this situation?",
       ];
-      
+
       const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
-      
+
       const newAiMessage: MessageType = {
         id: uuidv4(),
         content: randomResponse,
         sender: "ai",
         timestamp: new Date(),
       };
-      
+
       setMessages((prev) => [...prev, newAiMessage]);
       setIsAiResponding(false);
     }, 1500);
@@ -58,21 +58,21 @@ const Index = () => {
   return (
     <div className="flex flex-col h-screen bg-background">
       <Header />
-      
+
       <main className="flex-1 overflow-hidden relative">
-        <div 
+        <div
           ref={chatContainerRef}
           className="chat-container h-full overflow-y-auto pb-4 pt-2 px-4"
         >
           <div className="max-w-3xl mx-auto">
             {messages.map((message, index) => (
-              <ChatMessage 
-                key={message.id} 
-                message={message} 
+              <ChatMessage
+                key={message.id}
+                message={message}
                 isLatest={index === messages.length - 1}
               />
             ))}
-            
+
             {isAiResponding && (
               <div className="flex justify-start mb-4 animate-fade-in opacity-0">
                 <div className="chat-bubble ai">
@@ -87,8 +87,8 @@ const Index = () => {
           </div>
         </div>
       </main>
-      
-      <ChatInput 
+
+      <ChatInput
         onSendMessage={handleSendMessage}
         isAiResponding={isAiResponding}
       />

@@ -602,14 +602,6 @@ User: ${messageContent}
     setIsHistoryLoading(true); // Start loading indicator for new persona history
   };
 
-  // Effect to manage body scroll (prevent scrolling behind chat)
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'auto'; // Restore on unmount
-    };
-  }, []);
-
   // Conditional Rendering for Error State
   // Do not show the generic error view if the specific 'OutOfCreditsNotice' is shown.
   if (currentChat.error && currentChat.error !== 'NoCredits' && !isHistoryLoading) {
@@ -630,7 +622,7 @@ User: ${messageContent}
 
   // JSX Return
   return (
-    <div className="w-full h-screen bg-[#FFF8E1] p-0 md:p-4 lg:p-6 flex items-center justify-center">
+    <div className="w-full h-full bg-[#FFF8E1] p-4 md:p-4 lg:p-6 flex items-center justify-center">
       <div className="flex flex-col h-full w-full max-w-4xl mx-auto bg-white/80 md:rounded-2xl shadow-2xl overflow-hidden backdrop-blur-sm border border-orange-200/30">
         <ChatHeader
           onPersonaSelect={handlePersonaSelect}

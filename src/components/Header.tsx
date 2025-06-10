@@ -207,6 +207,18 @@ const Header = () => {
                       {currentUser.email}
                     </p>
                   </div>
+                  <hr className="border-border/50" />
+                  <div className="px-1 py-1.5 text-sm text-muted-foreground space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span>Credits:</span>
+                      <span className="font-semibold text-primary">{credits !== null ? credits : '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Daily Resets Left:</span>
+                      <span className="font-semibold text-primary">{monthlyResets !== null ? 6 - monthlyResets : '-'}</span>
+                    </div>
+                  </div>
+                  <hr className="border-border/50" />
                   <Button variant="outline" className="w-full justify-start" onClick={() => { navigate("/dashboard"); setMenuState(false); }}>
                     <Settings className="mr-2 h-4 w-4" /> Account Settings
                   </Button>
