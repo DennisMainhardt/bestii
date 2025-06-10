@@ -87,7 +87,12 @@ const Header = () => {
               </Link>
 
               <div className="flex items-center lg:hidden">
-                {/* <ThemeToggle /> */}
+                {currentUser && (
+                  <Button variant="ghost" size="icon" onClick={() => navigate('/chat')}>
+                    <MessageSquare className="h-6 w-6" />
+                    <span className="sr-only">Go to Chat</span>
+                  </Button>
+                )}
                 <button
                   onClick={() => setMenuState(!menuState)}
                   aria-label={menuState ? 'Close Menu' : 'Open Menu'}

@@ -93,7 +93,7 @@ const Hero = () => {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-warm-200 rounded-full px-6 py-3 mb-8 shadow-sm">
               <Sparkles className="w-4 h-4 text-warm-600" />
-              <span className="text-sm font-medium text-warm-700">The best friend you always needed, but never had. ✨</span>
+              <span className="text-sm font-medium text-warm-700">The best friend you always needed but never had. Until now.</span>              <Sparkles className="w-4 h-4 text-warm-600" />
             </div>
 
             {/* Main heading */}
@@ -105,11 +105,12 @@ const Hero = () => {
 
             {/* Subheading */}
             <p className="text-xl md:text-2xl text-warm-700 mb-10 max-w-2xl mx-auto md:mx-0 leading-relaxed">
-              Real talk. No judgment. Just support that sticks.
+              Real talk. No judgment. Support that actually sticks.
               <br />
               Even when you don't know how to ask for help.
               <br />
-              Meet Bestii — your 24/7 chat companion.
+              <br />
+              Meet Bestii: your 24/7 chat companion.
             </p>
 
             {/* CTA Buttons (Desktop Only) */}
