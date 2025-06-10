@@ -86,10 +86,10 @@ const Hero = () => {
 
       <div className="container mx-auto px-4 z-10">
         {/* Flex container for two-column layout on medium screens and up */}
-        <div className="md:flex md:items-center md:gap-12 lg:gap-16">
+        <div className="md:grid md:grid-cols-5 md:gap-12 lg:gap-16 md:items-center">
 
           {/* Left Content Block */}
-          <div className="md:w-1/2 lg:w-3/5 text-center md:text-left">
+          <div className="md:col-span-3 text-center md:text-left">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-warm-200 rounded-full px-6 py-3 mb-8 shadow-sm">
               <Sparkles className="w-4 h-4 text-warm-600" />
@@ -112,52 +112,54 @@ const Hero = () => {
               Meet Bestii — your 24/7 chat companion.
             </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start items-center mb-12">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-10 py-6 text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto"
-                onClick={() => navigate("/login", { state: { from: "register" } })}
-              >
-                <MessageCircle className="mr-3 h-6 w-6" />
-                Talk to Bestii
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-2 border-warm-300 text-warm-700 hover:bg-warm-50 px-8 py-6 text-lg font-semibold rounded-full transition-all duration-300 w-full sm:w-auto"
-                onClick={() => {
-                  const featuresSection = document.getElementById("features");
-                  if (featuresSection) {
-                    featuresSection.scrollIntoView({ behavior: "smooth" });
-                  }
-                }}
-              >
-                See Why I'm Different
-              </Button>
-            </div>
-
-            {/* Social proof */}
-            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-8 text-sm text-warm-600">
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="w-10 h-10 bg-gradient-to-r from-warm-400 to-coral-400 rounded-full border-2 border-white flex items-center justify-center text-white font-bold">
-                      {['😊', '🥺', '💪', '🔥', '✨'][i - 1]}
-                    </div>
-                  ))}
-                </div>
-                <span className="font-medium">15,000+ people finally feeling understood</span>
+            {/* CTA Buttons (Desktop Only) */}
+            <div className="hidden md:block">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start items-center mb-12">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-10 py-6 text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto"
+                  onClick={() => navigate("/login", { state: { from: "register" } })}
+                >
+                  <MessageCircle className="mr-3 h-6 w-6" />
+                  Talk to Bestii
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="border-2 border-warm-300 text-warm-700 hover:bg-warm-50 px-8 py-6 text-lg font-semibold rounded-full transition-all duration-300 w-full sm:w-auto"
+                  onClick={() => {
+                    const featuresSection = document.getElementById("features");
+                    if (featuresSection) {
+                      featuresSection.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }}
+                >
+                  See Why I'm Different
+                </Button>
               </div>
-              <div className="flex items-center gap-2">
-                <Heart className="h-5 w-5 text-red-500" />
-                <span className="font-medium">Your new ride-or-die bestie</span>
+
+              {/* Social proof (Desktop Only) */}
+              <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-8 text-sm text-warm-600">
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="w-10 h-10 bg-gradient-to-r from-warm-400 to-coral-400 rounded-full border-2 border-white flex items-center justify-center text-white font-bold">
+                        {['😊', '🥺', '💪', '🔥', '✨'][i - 1]}
+                      </div>
+                    ))}
+                  </div>
+                  <span className="font-medium">15,000+ people finally feeling understood</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-red-500" />
+                  <span className="font-medium">Your new ride-or-die bestie</span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Right Content Block (Phone) */}
-          <div className="md:w-1/2 lg:w-2/5 mt-16 md:mt-0 flex justify-center md:justify-end">
+          <div className="md:col-span-2 mt-16 md:mt-0 flex justify-center md:justify-end">
             <motion.div
               className="relative w-72 sm:w-80 h-[600px] sm:h-[670px] bg-zinc-900 rounded-[50px] border-[12px] border-zinc-800 shadow-2xl overflow-hidden ring-4 ring-coral-300/70 ring-offset-4 ring-offset-warm-50/50 mx-auto md:mx-0"
               animate={{
@@ -223,6 +225,49 @@ const Hero = () => {
                 )}
               </div>
             </motion.div>
+          </div>
+        </div>
+
+        {/* CTA Buttons & Social Proof (Mobile Only) */}
+        <div className="md:hidden mt-12 text-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-10 py-6 text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto"
+              onClick={() => navigate("/login", { state: { from: "register" } })}
+            >
+              <MessageCircle className="mr-3 h-6 w-6" />
+              Talk to Bestii
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="border-2 border-warm-300 text-warm-700 hover:bg-warm-50 px-8 py-6 text-lg font-semibold rounded-full transition-all duration-300 w-full sm:w-auto"
+              onClick={() => {
+                const featuresSection = document.getElementById("features");
+                if (featuresSection) {
+                  featuresSection.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
+            >
+              See Why I'm Different
+            </Button>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-sm text-warm-600">
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="w-10 h-10 bg-gradient-to-r from-warm-400 to-coral-400 rounded-full border-2 border-white flex items-center justify-center text-white font-bold">
+                    {['😊', '🥺', '💪', '🔥', '✨'][i - 1]}
+                  </div>
+                ))}
+              </div>
+              <span className="font-medium">15,000+ people finally feeling understood</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Heart className="h-5 w-5 text-red-500" />
+              <span className="font-medium">Your new ride-or-die bestie</span>
+            </div>
           </div>
         </div>
       </div>

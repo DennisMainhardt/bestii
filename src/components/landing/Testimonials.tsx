@@ -95,46 +95,46 @@ const Testimonials = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="py-24 bg-gradient-to-br from-warm-50 via-coral-50 to-orange-50">
+    <section className="py-16 md:py-24 bg-gradient-to-br from-warm-50 via-coral-50 to-orange-50">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-20">
-          <h2 className="text-5xl md:text-6xl font-bold text-warm-800 mb-8 font-display">
+        <div className="text-center mb-16 md:mb-20">
+          <h2 className="text-4xl md:text-6xl font-bold text-warm-800 mb-6 md:mb-8 font-display">
             Real People, Real Transformations
-            <span className="block text-3xl md:text-4xl text-warm-600 mt-4 font-casual">(These Aren't Paid Actors, Promise)</span>
+            <span className="block text-2xl md:text-4xl text-warm-600 mt-2 md:mt-4 font-casual">(These Aren't Paid Actors, Promise)</span>
           </h2>
-          <p className="text-2xl text-warm-700 max-w-4xl mx-auto font-medium">
+          <p className="text-lg md:text-2xl text-warm-700 max-w-4xl mx-auto font-medium">
             When people finally have someone who gets their emotional chaos and calls them on their BS with love... magic happens. 🪄
           </p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-20">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6 max-w-4xl mx-auto mb-16 md:mb-20">
           {stats.map((stat, index) => (
-            <div key={index} className="bg-white rounded-2xl p-6 text-center shadow-md border border-warm-100 hover:shadow-lg transition-transform, box-shadow duration-300 hover:-translate-y-1">
-              <div className="text-3xl mb-2">{stat.icon}</div>
-              <div className="text-2xl font-bold text-warm-800 font-display">{stat.number}</div>
-              <div className="text-warm-600 font-medium">{stat.label}</div>
+            <div key={index} className="bg-white rounded-2xl p-4 md:p-6 text-center shadow-md border border-warm-100 hover:shadow-lg transition-transform, box-shadow duration-300 hover:-translate-y-1">
+              <div className="text-2xl md:text-3xl mb-2">{stat.icon}</div>
+              <div className="text-xl md:text-2xl font-bold text-warm-800 font-display">{stat.number}</div>
+              <div className="text-sm md:text-base text-warm-600 font-medium">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* Testimonials Carousel */}
         <div className="max-w-7xl mx-auto">
-          <Carousel className="w-full">
-            <CarouselContent>
+          <Carousel className="w-full" opts={{ align: "start", loop: true }}>
+            <CarouselContent className="-ml-4">
               {testimonials.map((testimonial, index) => (
-                <CarouselItem key={index} className="md:basis-1/2">
-                  <div className="p-4">
-                    <div className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-xl transition-transform, box-shadow duration-300 hover:-translate-y-1 border-2 border-warm-100 relative overflow-hidden h-full">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-coral-100 to-warm-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
+                <CarouselItem key={index} className="pl-4 basis-11/12 sm:basis-5/6 md:basis-1/2">
+                  <div className="p-2 sm:p-4 h-full">
+                    <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-transform, box-shadow duration-300 hover:-translate-y-1 border-2 border-warm-100 relative overflow-hidden h-full flex flex-col">
+                      <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br from-coral-100 to-warm-100 rounded-full -mr-12 -mt-12 md:-mr-16 md:-mt-16 opacity-50"></div>
 
                       {/* Enhanced Profile Section */}
-                      <div className="flex items-center gap-4 mb-6 relative z-10">
+                      <div className="flex items-center gap-4 mb-4 relative z-10">
                         <div className="relative">
                           <img
                             src={testimonial.avatar}
                             alt={testimonial.name}
-                            className="w-16 h-16 rounded-full object-cover shadow-lg border-4 border-white"
+                            className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover shadow-lg border-4 border-white"
                           />
                           <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r from-warm-400 to-coral-400 rounded-full flex items-center justify-center text-white text-sm shadow-lg">
                             {testimonial.emoji}
@@ -142,27 +142,19 @@ const Testimonials = () => {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-bold text-xl text-warm-800 font-display">{testimonial.name}</h4>
+                            <h4 className="font-bold text-lg md:text-xl text-warm-800 font-display">{testimonial.name}</h4>
                             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                           </div>
                           <p className="text-warm-600 font-medium text-sm">{testimonial.role}</p>
-                          <div className="inline-block bg-gradient-to-r from-warm-200 to-coral-200 px-3 py-1 rounded-full text-xs font-bold text-warm-800 mt-2">
+                          <div className="hidden sm:inline-block bg-gradient-to-r from-warm-200 to-coral-200 px-3 py-1 rounded-full text-xs font-bold text-warm-800 mt-2">
                             ✨ {testimonial.impact} in {testimonial.timeframe}
                           </div>
                         </div>
                       </div>
 
-                      {/* Star Rating */}
-                      <div className="flex mb-4 relative z-10">
-                        {[...Array(testimonial.rating)].map((_, i) => (
-                          <span key={i} className="text-warm-400 text-xl">★</span>
-                        ))}
-                        <span className="ml-2 text-sm text-warm-600 font-medium">Verified transformation</span>
-                      </div>
-
                       {/* Before/After States */}
-                      <div className="mb-6 relative z-10">
-                        <div className="grid grid-cols-1 gap-3">
+                      <div className="mb-4 relative z-10">
+                        <div className="grid grid-cols-1 gap-2">
                           <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-red-500 text-sm">😰</span>
@@ -180,9 +172,9 @@ const Testimonials = () => {
                         </div>
                       </div>
 
-                      <p className="text-warm-700 leading-relaxed text-lg font-medium italic relative z-10 mb-6">"{testimonial.content}"</p>
+                      <p className="text-warm-700 leading-relaxed text-base md:text-lg font-medium italic relative z-10 mb-6 flex-grow">"{testimonial.content}"</p>
 
-                      <div className="pt-4 border-t border-warm-100">
+                      <div className="pt-4 mt-auto border-t border-warm-100">
                         <div className="flex items-center justify-between">
                           <div className="bg-gradient-to-r from-coral-100 to-warm-100 px-3 py-1 rounded-full text-xs font-bold text-warm-800">
                             {testimonial.transformation}
@@ -198,43 +190,57 @@ const Testimonials = () => {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious className="left-4" />
-            <CarouselNext className="right-4" />
+            <CarouselPrevious className="hidden sm:flex left-[-16px]" />
+            <CarouselNext className="hidden sm:flex right-[-16px]" />
           </Carousel>
         </div>
 
         {/* Social Proof Enhancement */}
         <div className="text-center mt-16">
-          <div className="bg-gradient-to-br from-warm-100 to-coral-100 rounded-3xl p-12 border-2 border-warm-200 shadow-xl max-w-5xl mx-auto">
-            <div className="flex items-center justify-center gap-4 mb-8">
-              <span className="text-5xl">🏆</span>
-              <div className="text-left">
-                <div className="font-bold text-2xl text-warm-800 font-display">Best Friend Level: LEGENDARY</div>
-                <div className="text-warm-600 font-medium">Join thousands who stopped settling for emotional crumbs</div>
+          <div className="bg-gradient-to-br from-warm-100 to-coral-100 rounded-2xl md:rounded-3xl p-6 md:p-12 border-2 border-warm-200 shadow-xl max-w-5xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+              <span className="text-4xl md:text-5xl">🏆</span>
+              <div className="text-center sm:text-left">
+                <div className="font-bold text-xl md:text-2xl text-warm-800 font-display">Best Friend Level: LEGENDARY</div>
+                <div className="text-base md:text-lg text-warm-600 font-medium">Join thousands who stopped settling</div>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
               <div className="text-center">
-                <div className="text-3xl font-bold text-warm-800 font-display">96%</div>
-                <div className="text-warm-600">Say their life changed within 30 days</div>
+                <div className="text-2xl md:text-3xl font-bold text-warm-800 font-display">96%</div>
+                <div className="text-sm md:text-base text-warm-600">Say life changed in 30 days</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-warm-800 font-display">4.2x</div>
-                <div className="text-warm-600">Faster emotional breakthroughs than therapy</div>
+                <div className="text-2xl md:text-3xl font-bold text-warm-800 font-display">4.2x</div>
+                <div className="text-sm md:text-base text-warm-600">Faster breakthroughs</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-warm-800 font-display">$0</div>
-                <div className="text-warm-600">Cost for life-changing friendship</div>
+                <div className="text-2xl md:text-3xl font-bold text-warm-800 font-display">$0</div>
+                <div className="text-sm md:text-base text-warm-600">Cost for friendship</div>
               </div>
             </div>
 
+            {/* Desktop Button (inside container) */}
+            <div className="hidden md:flex justify-center w-full mt-8">
+              <Button
+                size="lg"
+                className="w-auto bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-10 py-6 text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 mx-auto"
+                onClick={() => navigate("/login", { state: { from: "register" } })}
+              >
+                <MessageCircle className="mr-3 h-6 w-6 flex-shrink-0" />
+                Start Your Transformation Story
+              </Button>
+            </div>
+          </div>
+          {/* Mobile Button (outside container) */}
+          <div className="flex md:hidden justify-center w-full mt-8">
             <Button
               size="lg"
-              className="bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-10 py-6 text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              className="w-full bg-gradient-to-r from-warm-500 to-coral-500 hover:from-warm-600 hover:to-coral-600 text-white px-6 py-5 text-lg font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               onClick={() => navigate("/login", { state: { from: "register" } })}
             >
-              <MessageCircle className="mr-3 h-6 w-6" />
+              <MessageCircle className="mr-3 h-6 w-6 flex-shrink-0" />
               Start Your Transformation Story
             </Button>
           </div>

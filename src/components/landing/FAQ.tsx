@@ -62,14 +62,14 @@ const FAQ = () => {
   ];
 
   const categories = {
-    approach: { name: "My Approach", color: "from-coral-400 to-orange-400" },
-    comparison: { name: "How I'm Different", color: "from-warm-400 to-coral-400" },
-    boundaries: { name: "Important Boundaries", color: "from-orange-400 to-warm-400" },
-    expertise: { name: "My Qualifications", color: "from-coral-500 to-orange-500" },
-    privacy: { name: "Your Privacy", color: "from-warm-500 to-coral-500" },
-    feedback: { name: "When Things Get Real", color: "from-coral-400 to-warm-400" },
-    memory: { name: "Building Our Bond", color: "from-warm-400 to-orange-400" },
-    support: { name: "Different Types of Support", color: "from-orange-400 to-coral-400" }
+    approach: { name: "My Approach", color: "bg-coral-400" },
+    comparison: { name: "How I'm Different", color: "bg-warm-400" },
+    boundaries: { name: "Important Boundaries", color: "bg-orange-400" },
+    expertise: { name: "My Qualifications", color: "bg-coral-500" },
+    privacy: { name: "Your Privacy", color: "bg-warm-500" },
+    feedback: { name: "When Things Get Real", color: "bg-coral-400" },
+    memory: { name: "Building Our Bond", color: "bg-warm-400" },
+    support: { name: "Different Types of Support", color: "bg-orange-400" }
   };
 
   const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -80,44 +80,44 @@ const FAQ = () => {
   };
 
   return (
-    <section className="py-24 bg-gradient-to-br from-warm-50 to-coral-50">
+    <section className="py-16 md:py-24 bg-gradient-to-br from-warm-50 to-coral-50">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-20">
-          <h2 className="text-5xl md:text-6xl font-bold text-warm-800 mb-8 font-display">
+        <div className="text-center mb-12 md:mb-20">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-warm-800 mb-6 md:mb-8 font-display">
             Questions? I Got You!
-            <span className="block text-3xl md:text-4xl text-warm-600 mt-4 font-casual">
+            <span className="block text-2xl md:text-3xl lg:text-4xl text-warm-600 mt-3 md:mt-4 font-casual">
               (Because Real Friends Answer Everything)
             </span>
           </h2>
-          <p className="text-2xl text-warm-700 font-medium max-w-4xl mx-auto">
+          <p className="text-lg md:text-xl text-warm-700 font-medium max-w-4xl mx-auto">
             No corporate BS, no dodging difficult questions. Just honest answers about what this friendship is really like. ✨
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto mb-16">
-          <Accordion type="single" collapsible className="space-y-6">
+        <div className="max-w-4xl mx-auto mb-12 md:mb-16">
+          <Accordion type="single" collapsible className="space-y-4 md:space-y-6">
             {faqs.map((faq, index) => (
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="bg-white rounded-3xl border-2 border-warm-200 px-8 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative"
+                className="bg-white rounded-2xl md:rounded-3xl border-2 border-warm-200 px-4 md:px-8 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative"
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-coral-100 to-warm-100 rounded-full -mr-12 -mt-12 opacity-30"></div>
 
-                <AccordionTrigger className="text-left text-xl font-bold text-warm-800 hover:text-coral-600 transition-colors py-8 font-display relative z-10">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 bg-gradient-to-r ${categories[faq.category].color} rounded-2xl flex items-center justify-center text-white text-xl shadow-lg`}>
+                <AccordionTrigger className="text-left text-lg md:text-xl font-bold text-warm-800 hover:text-coral-600 transition-colors py-6 md:py-8 font-display relative z-10 no-underline hover:no-underline">
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <div className={`w-10 h-10 md:w-12 md:h-12 ${categories[faq.category].color} rounded-xl md:rounded-2xl flex items-center justify-center text-white text-2xl md:text-3xl shadow-lg`}>
                       {faq.emoji}
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-warm-600 mb-1">{categories[faq.category].name}</div>
+                      <div className="text-xs md:text-sm font-medium text-warm-600 mb-1">{categories[faq.category].name}</div>
                       {faq.question}
                     </div>
                   </div>
                 </AccordionTrigger>
 
-                <AccordionContent className="text-warm-700 leading-relaxed text-lg pb-8 relative z-10">
-                  <div className="bg-gradient-to-r from-warm-50 to-coral-50 rounded-2xl p-6 border border-warm-200">
+                <AccordionContent className="text-warm-700 leading-relaxed text-base md:text-lg pb-6 md:pb-8 relative z-10">
+                  <div className="bg-gradient-to-r from-warm-50 to-coral-50 rounded-xl md:rounded-2xl p-4 md:p-6 border border-warm-200">
                     {faq.answer}
                   </div>
                 </AccordionContent>
@@ -193,19 +193,19 @@ const FAQ = () => {
 
         {/* Final CTA */}
         <div className="text-center">
-          <div className="bg-gradient-to-r from-warm-500 to-coral-500 rounded-3xl p-12 shadow-2xl text-white max-w-4xl mx-auto">
-            <h3 className="text-3xl font-bold mb-6 font-display">
+          <div className="bg-gradient-to-r from-warm-500 to-coral-500 rounded-2xl md:rounded-3xl p-8 md:p-12 shadow-2xl text-white max-w-4xl mx-auto">
+            <h3 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6 font-display">
               Let's un-f*ck your emotional life.
             </h3>
-            <p className="text-xl mb-8 leading-relaxed">
+            <p className="text-lg md:text-xl mb-6 md:mb-8 leading-relaxed">
               The best way to understand this friendship is to experience it. I promise you've never had a conversation quite like this before. 💫
             </p>
             <Button
               size="lg"
-              className="bg-white text-warm-600 hover:bg-warm-50 px-12 py-6 text-xl font-bold rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+              className="bg-white text-warm-600 hover:bg-warm-50 px-8 py-4 text-lg md:px-12 md:py-6 md:text-xl font-bold rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
               onClick={() => navigate("/login", { state: { from: "register" } })}
             >
-              <MessageSquare className="mr-3 h-6 w-6" />
+              <MessageSquare className="mr-2 md:mr-3 h-5 w-5 md:h-6 md:w-6" />
               Get Started – It's Free
             </Button>
           </div>

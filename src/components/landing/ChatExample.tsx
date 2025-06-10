@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle, Moon, Award, Drama, Rocket, Users, Zap, Lightbulb, HeartHandshake, Coffee, Sparkles as SparklesIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 
 const ChatExample = () => {
   const navigate = useNavigate();
@@ -100,43 +101,82 @@ const ChatExample = () => {
 
             <div className="overflow-x-auto shadow-xl rounded-xl border border-warm-300">
               <div className="min-w-full align-middle">
-                {/* Table Headers */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-gradient-to-b from-warm-200 to-warm-100 rounded-t-xl overflow-hidden">
-                  <div className="py-5 px-5 bg-transparent text-left text-sm font-semibold text-warm-900 uppercase tracking-wider">Feature</div>
-                  <div className="py-5 px-5 bg-transparent text-left text-sm font-semibold text-warm-900 uppercase tracking-wider">Traditional Therapy</div>
-                  <div className="py-5 px-5 bg-transparent text-left text-sm font-semibold text-warm-900 uppercase tracking-wider">Your Bestie AI</div>
+                {/* --- Mobile Carousel View --- */}
+                <div className="block md:hidden">
+                  <Carousel className="w-full" opts={{ align: "start", loop: true }}>
+                    <CarouselContent className="-ml-4">
+                      {therapyComparisonsData.map((item, index) => {
+                        const itemTheme = colorThemes[item.themeKey];
+                        return (
+                          <CarouselItem key={index} className="pl-4 basis-5/6 sm:basis-4/5">
+                            <div className="flex flex-col h-full p-4 rounded-lg border-2" style={{ borderColor: itemTheme.borderColor, backgroundColor: itemTheme.cellBg }}>
+                              {/* Feature */}
+                              <div className="flex items-center space-x-4 mb-4 pb-4 border-b" style={{ borderColor: itemTheme.borderColor }}>
+                                <div className={cn("p-2 rounded-full shadow-sm", itemTheme.iconBg)}>
+                                  <item.icon className={cn("w-6 h-6 flex-shrink-0", itemTheme.iconColor)} />
+                                </div>
+                                <span className={cn("font-semibold text-left text-lg", itemTheme.textColor)}>{item.scenario}</span>
+                              </div>
+                              {/* Therapy */}
+                              <div className="mb-4">
+                                <h4 className="font-bold text-slate-700 mb-2">Traditional Therapy</h4>
+                                <p className="text-sm text-slate-500 leading-relaxed">{item.therapy}</p>
+                              </div>
+                              {/* Bestie AI */}
+                              <div className="flex-grow">
+                                <h4 className={cn("font-bold mb-2", itemTheme.textColor)}>Your Bestie AI</h4>
+                                <p className={cn("text-sm font-semibold leading-relaxed", itemTheme.textColor)}>{item.bestie}</p>
+                              </div>
+                            </div>
+                          </CarouselItem>
+                        );
+                      })}
+                    </CarouselContent>
+                  </Carousel>
                 </div>
 
-                {/* Table Body */}
-                <div className="divide-y divide-warm-300 bg-white">
-                  {therapyComparisonsData.map((item, index) => {
-                    const itemTheme = colorThemes[item.themeKey];
-                    return (
-                      <div key={index} className={cn(
-                        `grid grid-cols-1 md:grid-cols-3 gap-px transition-colors duration-150`,
-                        index % 2 === 0 ? 'bg-white' : 'bg-warm-50/50',
-                        itemTheme.rowHoverBg
-                      )}>
-                        <div className="py-6 px-5 flex items-center space-x-4">
-                          <div className={cn("p-2 rounded-full shadow-sm", itemTheme.iconBg)}>
-                            <item.icon className={cn("w-6 h-6 flex-shrink-0", itemTheme.iconColor)} />
+                {/* --- Desktop Table View --- */}
+                <div className="hidden md:block">
+                  <div className="min-w-full align-middle">
+                    {/* Table Headers */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-gradient-to-b from-warm-200 to-warm-100 rounded-t-xl overflow-hidden">
+                      <div className="py-5 px-5 bg-transparent text-left text-sm font-semibold text-warm-900 uppercase tracking-wider">Feature</div>
+                      <div className="py-5 px-5 bg-transparent text-left text-sm font-semibold text-warm-900 uppercase tracking-wider">Traditional Therapy</div>
+                      <div className="py-5 px-5 bg-transparent text-left text-sm font-semibold text-warm-900 uppercase tracking-wider">Your Bestie AI</div>
+                    </div>
+
+                    {/* Table Body */}
+                    <div className="divide-y divide-warm-300 bg-white">
+                      {therapyComparisonsData.map((item, index) => {
+                        const itemTheme = colorThemes[item.themeKey];
+                        return (
+                          <div key={index} className={cn(
+                            `grid grid-cols-1 md:grid-cols-3 gap-px transition-colors duration-150`,
+                            index % 2 === 0 ? 'bg-white' : 'bg-warm-50/50',
+                            itemTheme.rowHoverBg
+                          )}>
+                            <div className="py-6 px-5 flex items-center space-x-4">
+                              <div className={cn("p-2 rounded-full shadow-sm", itemTheme.iconBg)}>
+                                <item.icon className={cn("w-6 h-6 flex-shrink-0", itemTheme.iconColor)} />
+                              </div>
+                              <span className={cn("font-semibold text-left text-lg", itemTheme.textColor)}>{item.scenario}</span>
+                            </div>
+                            <div className="py-6 px-5 text-left text-sm text-slate-500 leading-relaxed">
+                              {item.therapy}
+                            </div>
+                            <div className={cn(
+                              "py-6 px-5 text-left text-sm font-semibold leading-relaxed md:pl-6",
+                              itemTheme.textColor,
+                              itemTheme.cellBg,
+                              `md:${itemTheme.borderColor}`
+                            )} style={{ borderLeftWidth: "2px" }}>
+                              {item.bestie}
+                            </div>
                           </div>
-                          <span className={cn("font-semibold text-left text-lg", itemTheme.textColor)}>{item.scenario}</span>
-                        </div>
-                        <div className="py-6 px-5 text-left text-sm text-slate-500 leading-relaxed">
-                          {item.therapy}
-                        </div>
-                        <div className={cn(
-                          "py-6 px-5 text-left text-sm font-semibold leading-relaxed md:pl-6",
-                          itemTheme.textColor,
-                          itemTheme.cellBg,
-                          `md:${itemTheme.borderColor}`
-                        )} style={{ borderLeftWidth: "2px" }}>
-                          {item.bestie}
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
