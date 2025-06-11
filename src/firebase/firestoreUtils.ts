@@ -161,6 +161,8 @@ export const saveSummary = async (
   personaId: string,
   summary: string,
   sourceMessageIds: string[],
+  messageCount: number,
+  lastMessageTimestamp: Timestamp,
   tokenCount?: number,
   metadata?: SummaryMetadata | null // Accept optional metadata
 ): Promise<string> => {
@@ -171,11 +173,18 @@ export const saveSummary = async (
     db,
     `users/${userId}/personas/${personaId}/memory_sessions`
   );
-  // Update type to include metadata field
-  const summaryData: Omit<FirestoreSummary, 'id'> = {
+  const summaryData: Omit<FirestoreSummary, 'id' | 'createdAt'> & {
+    summarizedAt: Timestamp;
+    messageCount: number;
+    lastMessageTimestamp: Timestamp;
+    personaId: string;
+  } = {
     summary,
     summarizedAt: serverTimestamp() as Timestamp, // Use server timestamp
     sourceMessageIds,
+    messageCount,
+    lastMessageTimestamp,
+    personaId,
   };
   // Conditionally add optional fields
   if (tokenCount !== undefined) {

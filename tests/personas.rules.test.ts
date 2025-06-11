@@ -83,7 +83,7 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
       const user123SummaryRef = await addDoc(
         collection(
           adminSetupDb,
-          `users/${user_123}/personas/${personaId}/summaries`
+          `users/${user_123}/personas/${personaId}/memory_sessions`
         ),
         { summary: 'original summary', createdAt: serverTimestamp() }
       );
@@ -96,7 +96,7 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
       const otherUser456SummaryRef = await addDoc(
         collection(
           adminSetupDb,
-          `users/${other_user_456}/personas/${personaId}/summaries`
+          `users/${other_user_456}/personas/${personaId}/memory_sessions`
         ),
         { summary: 'other summary', createdAt: serverTimestamp() }
       );
@@ -124,7 +124,7 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
       getDoc(
         doc(
           user123Db,
-          `users/${user_123}/personas/${personaId}/summaries/${user123SummaryId}`
+          `users/${user_123}/personas/${personaId}/memory_sessions/${user123SummaryId}`
         )
       )
     );
@@ -135,7 +135,7 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
       getDocs(
         collection(
           user123Db,
-          `users/${user_123}/personas/${personaId}/summaries`
+          `users/${user_123}/personas/${personaId}/memory_sessions`
         )
       )
     );
@@ -147,7 +147,7 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
       getDoc(
         doc(
           user123Db,
-          `users/${other_user_456}/personas/${personaId}/summaries/${otherUser456SummaryId}`
+          `users/${other_user_456}/personas/${personaId}/memory_sessions/${otherUser456SummaryId}`
         )
       )
     );
@@ -158,7 +158,7 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
       getDocs(
         collection(
           user123Db,
-          `users/${other_user_456}/personas/${personaId}/summaries`
+          `users/${other_user_456}/personas/${personaId}/memory_sessions`
         )
       )
     );
@@ -170,7 +170,7 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
       getDoc(
         doc(
           unauthDb,
-          `users/${user_123}/personas/${personaId}/summaries/${user123SummaryId}`
+          `users/${user_123}/personas/${personaId}/memory_sessions/${user123SummaryId}`
         )
       )
     );
@@ -178,7 +178,7 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
       getDocs(
         collection(
           unauthDb,
-          `users/${user_123}/personas/${personaId}/summaries`
+          `users/${user_123}/personas/${personaId}/memory_sessions`
         )
       )
     );
@@ -189,13 +189,19 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
   test('Test 22: Create Own Summary (Authenticated Owner - Valid Data)', async () => {
     const summaryData = {
       summary: 'Valid summary text',
-      createdAt: serverTimestamp(),
+      summarizedAt: serverTimestamp(),
+      sourceMessageIds: ['msg1', 'msg2'],
+      messageCount: 2,
+      personaId: personaId,
+      lastMessageTimestamp: serverTimestamp(),
+      tokenCount: 100,
+      metadata: {},
     };
     await assertSucceeds(
       addDoc(
         collection(
           user123Db,
-          `users/${user_123}/personas/${personaId}/summaries`
+          `users/${user_123}/personas/${personaId}/memory_sessions`
         ),
         summaryData
       )
@@ -203,12 +209,17 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
   });
 
   test('Test 23: Create Own Summary (Authenticated Owner - Missing Field)', async () => {
-    const summaryData = { /* summary missing */ createdAt: serverTimestamp() };
+    const summaryData = {
+      /* summary missing */ summarizedAt: serverTimestamp(),
+      sourceMessageIds: ['msg1', 'msg2'],
+      messageCount: 2,
+      personaId: personaId,
+    };
     await assertFails(
       addDoc(
         collection(
           user123Db,
-          `users/${user_123}/personas/${personaId}/summaries`
+          `users/${user_123}/personas/${personaId}/memory_sessions`
         ),
         summaryData
       )
@@ -218,13 +229,16 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
   test('Create Own Summary (Authenticated Owner - Client Timestamp)', async () => {
     const summaryData = {
       summary: 'Valid summary text',
-      createdAt: new Date(),
-    }; // Client time
+      summarizedAt: new Date(), // Client time, should fail against summarizedAt == request.time
+      sourceMessageIds: ['msg1', 'msg2'],
+      messageCount: 2,
+      personaId: personaId,
+    };
     await assertFails(
       addDoc(
         collection(
           user123Db,
-          `users/${user_123}/personas/${personaId}/summaries`
+          `users/${user_123}/personas/${personaId}/memory_sessions`
         ),
         summaryData
       )
@@ -234,14 +248,17 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
   test('Create Summary for Another User (Authenticated)', async () => {
     const summaryData = {
       summary: 'Valid summary text',
-      createdAt: serverTimestamp(),
+      summarizedAt: serverTimestamp(),
+      sourceMessageIds: ['msg1', 'msg2'],
+      messageCount: 2,
+      personaId: personaId,
     };
     // Trying to write as user_123 to other_user_456's path
     await assertFails(
       addDoc(
         collection(
           user123Db,
-          `users/${other_user_456}/personas/${personaId}/summaries`
+          `users/${other_user_456}/personas/${personaId}/memory_sessions`
         ),
         summaryData
       )
@@ -257,7 +274,7 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
       addDoc(
         collection(
           unauthDb,
-          `users/${user_123}/personas/${personaId}/summaries`
+          `users/${user_123}/personas/${personaId}/memory_sessions`
         ),
         summaryData
       )
@@ -272,7 +289,7 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
       updateDoc(
         doc(
           user123Db,
-          `users/${user_123}/personas/${personaId}/summaries/${user123SummaryId}`
+          `users/${user_123}/personas/${personaId}/memory_sessions/${user123SummaryId}`
         ),
         { summary: 'Updated' }
       )
@@ -285,7 +302,7 @@ describe('Firestore Persona Data Rules (/users/{userId}/personas/{personaId}/...
       deleteDoc(
         doc(
           user123Db,
-          `users/${user_123}/personas/${personaId}/summaries/${user123SummaryId}`
+          `users/${user_123}/personas/${personaId}/memory_sessions/${user123SummaryId}`
         )
       )
     );

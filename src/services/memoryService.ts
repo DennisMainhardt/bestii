@@ -20,23 +20,23 @@ import { app } from '@/firebase/firebaseConfig';
 import { Message } from './messageService'; // Or import from a shared types file
 import { ChatGPTService } from '@/services/chatGPTService'; // Import AI service types
 import { ClaudeService } from '@/services/claudeService'; // Import AI service types
-import { SummaryMetadata } from '@/types/memory';
 
 // Type for the AI service instance that can be passed
 type AIService = ChatGPTService | ClaudeService;
-
-// Placeholder function is no longer needed if we pass the service
-/*
-async function summarizeConversation(conversation: string): Promise<string> {
-  // ... placeholder ...
-}
-*/
 
 const db = getFirestore(app);
 
 // Interfaces
 export interface SessionMetadata {
   lastSummarizedMessageTimestamp: Timestamp | null;
+}
+
+// Define the interface for the structured metadata (can be imported if defined elsewhere)
+interface SummaryMetadata {
+  key_people: string[];
+  key_events: string[];
+  emotional_themes: string[];
+  triggers: string[];
 }
 
 export interface SessionMemorySummary {
@@ -155,25 +155,76 @@ ${formattedMessages}
 
 Focus on capturing the essence of the interaction for future context continuity. Summary:`;
 
+  const metadataPrompt = `
+From the following conversation, extract the key metadata as a valid JSON object. Follow this structure exactly: {"key_people": ["name1", "name2"], "key_events": ["event1", "event2"], "emotional_themes": ["theme1", "theme2"], "triggers": ["trigger1", "trigger2"]}. If a category is empty, use an empty array. Do not include any text before or after the JSON object.
+
+Conversation:
+${formattedMessages}
+
+JSON Output:`;
+
   try {
-    console.log(`Requesting summary from AI for ${personaId}...`);
-    const summary = await aiService.sendMessage(summarizationPrompt);
+    console.log(`Requesting summary and metadata from AI for ${personaId}...`);
+
+    // Run both AI calls concurrently for efficiency
+    const [summary, metadataResponse] = await Promise.all([
+      aiService.sendMessage(summarizationPrompt),
+      aiService.sendMessage(metadataPrompt),
+    ]);
+
+    let metadata: SummaryMetadata = {
+      key_people: [],
+      key_events: [],
+      emotional_themes: [],
+      triggers: [],
+    };
+
+    try {
+      // The AI response should be a JSON string, so we parse it.
+      // Add error handling in case the response is not valid JSON.
+      const parsedMetadata = JSON.parse(metadataResponse);
+      metadata = {
+        key_people: parsedMetadata.key_people || [],
+        key_events: parsedMetadata.key_events || [],
+        emotional_themes: parsedMetadata.emotional_themes || [],
+        triggers: parsedMetadata.triggers || [],
+      };
+    } catch (e) {
+      console.error(
+        'Failed to parse metadata from AI response:',
+        e,
+        'Response was:',
+        metadataResponse
+      );
+      // If parsing fails, we'll proceed to save the summary without the structured metadata.
+    }
+
+    // --- Data Alignment ---
+    // Collect the IDs of the messages that were part of this summary
+    const sourceMessageIds = messagesToSummarize.map((msg) => msg.id);
+    // Estimate token count (a simple heuristic, can be improved)
+    const estimatedTokenCount = Math.ceil(
+      (summary.length + formattedMessages.length) / 4
+    );
 
     const summariesCollectionRef = collection(
       db,
-      `users/${userId}/personas/${personaId}/summaries`
+      `users/${userId}/personas/${personaId}/memory_sessions`
     );
 
     const summaryData = {
       summary: summary.trim(),
-      createdAt: serverTimestamp(),
+      summarizedAt: serverTimestamp(),
       messageCount: messagesToSummarize.length,
       personaId: personaId,
-      lastMessageTimestamp: latestMessageTimestamp, // Store the timestamp
+      lastMessageTimestamp: latestMessageTimestamp,
+      metadata: metadata,
+      sourceMessageIds: sourceMessageIds,
+      tokenCount: estimatedTokenCount,
     };
 
     await addDoc(summariesCollectionRef, summaryData);
-    console.log('Session memory summary saved successfully.');
+    console.log('Session memory summary with full schema saved successfully.');
 
     if (latestMessageTimestamp) {
       await updateSessionMetadata(userId, personaId, {
@@ -205,11 +256,11 @@ export const getRecentMemorySummaries = async (
   try {
     const summariesCollectionRef = collection(
       db,
-      `users/${userId}/personas/${personaId}/summaries`
+      `users/${userId}/personas/${personaId}/memory_sessions`
     );
     const q = query(
       summariesCollectionRef,
-      orderBy('createdAt', 'desc'), // Order by end time, newest first
+      orderBy('summarizedAt', 'desc'), // Order by the correct timestamp field
       limit(count)
     );
 
@@ -221,7 +272,7 @@ export const getRecentMemorySummaries = async (
       summaries.push({
         id: doc.id,
         summary: data.summary,
-        createdAt: data.createdAt as Timestamp,
+        createdAt: data.summarizedAt as Timestamp, // Use summarizedAt
         messageCount: data.messageCount,
         personaId: data.personaId,
         lastMessageTimestamp:
@@ -229,7 +280,7 @@ export const getRecentMemorySummaries = async (
             ? data.lastMessageTimestamp
             : null,
         tokenCount: data.tokenCount,
-        metadata: data.metadata,
+        metadata: data.metadata as SummaryMetadata,
       });
     });
 

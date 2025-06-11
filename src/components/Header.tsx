@@ -87,7 +87,7 @@ const Header = () => {
               </Link>
 
               <div className="flex items-center lg:hidden">
-                {currentUser && (
+                {currentUser && currentUser.emailVerified && (
                   <Button variant="ghost" size="icon" onClick={() => navigate('/chat')}>
                     <MessageSquare className="h-6 w-6" />
                     <span className="sr-only">Go to Chat</span>
@@ -122,7 +122,7 @@ const Header = () => {
 
             <div className="hidden lg:flex items-center gap-3">
               {/* <ThemeToggle /> */}
-              {currentUser ? (
+              {currentUser && currentUser.emailVerified ? (
                 <>
                   <Button variant="ghost" size="icon" onClick={() => navigate('/chat')}>
                     <MessageSquare className="h-5 w-5" />
@@ -202,7 +202,7 @@ const Header = () => {
                 ))}
               </ul>
               <hr className="border-border/50" />
-              {currentUser ? (
+              {currentUser && currentUser.emailVerified ? (
                 <div className="space-y-3 pt-2">
                   <div className="flex flex-col space-y-1 px-1 mb-3">
                     <p className="text-sm font-medium leading-none">

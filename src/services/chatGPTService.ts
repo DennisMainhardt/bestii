@@ -157,9 +157,9 @@ Return everything in a single JSON object with the following structure:
 
     try {
       // Update log message to show the actual max_tokens value
-      console.log(
-        `ChatGPTService::generateSummary - Requesting summary with ${messagesToSummarize.length} messages and max_tokens=${actualMaxTokens}`
-      );
+      // console.log(
+      //   `ChatGPTService::generateSummary - Requesting summary with ${messagesToSummarize.length} messages and max_tokens=${actualMaxTokens}`
+      // );
       const response = await fetch(OPENAI_API_URL, {
         method: 'POST',
         headers: {
@@ -194,10 +194,10 @@ Return everything in a single JSON object with the following structure:
       }
 
       const data = await response.json();
-      console.log(
-        'ChatGPTService::generateSummary - API success response:',
-        data
-      );
+      // console.log(
+      //   'ChatGPTService::generateSummary - API success response:',
+      //   data
+      // );
 
       // Add null check for choices array and message content
       if (
@@ -220,14 +220,14 @@ Return everything in a single JSON object with the following structure:
       let jsonStringToParse = '';
       if (match && match[1]) {
         jsonStringToParse = match[1].trim();
-        console.log(
-          'ChatGPTService::generateSummary - Extracted JSON content from markdown block.'
-        );
+        // console.log(
+        //   'ChatGPTService::generateSummary - Extracted JSON content from markdown block.'
+        // );
       } else {
         jsonStringToParse = fullContent;
-        console.log(
-          'ChatGPTService::generateSummary - No markdown block detected, attempting to parse raw content.'
-        );
+        // console.log(
+        //   'ChatGPTService::generateSummary - No markdown block detected, attempting to parse raw content.'
+        // );
       }
       // --- End Robust JSON Extraction ---
 
@@ -253,10 +253,10 @@ Return everything in a single JSON object with the following structure:
         );
       }
 
-      console.log(
-        'ChatGPTService::generateSummary - Summary received:',
-        summary
-      );
+      // console.log(
+      //   'ChatGPTService::generateSummary - Summary received:',
+      //   summary
+      // );
       return { summary, metadata, tokenCount: data.usage?.completion_tokens };
     } catch (error) {
       console.error(

@@ -110,8 +110,12 @@ describe('Firestore User Profile Rules (/users/{userId})', () => {
       email: 'test@example.com',
       displayName: 'Test User',
       providerId: 'google.com',
+      credits: 5,
+      monthlyResets: 0,
       createdAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
+      lastCreditReset: serverTimestamp(),
+      monthlyCycleStart: serverTimestamp(),
     };
     await assertSucceeds(
       setDoc(doc(user123Db, `users/${user_123}`), profileData)
@@ -123,8 +127,12 @@ describe('Firestore User Profile Rules (/users/{userId})', () => {
       uid: user_123,
       email: 'test@example.com' /* displayName MISSING */,
       providerId: 'google.com',
+      credits: 5,
+      monthlyResets: 0,
       createdAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
+      lastCreditReset: serverTimestamp(),
+      monthlyCycleStart: serverTimestamp(),
     };
     await assertFails(setDoc(doc(user123Db, `users/${user_123}`), profileData));
   });
@@ -135,8 +143,12 @@ describe('Firestore User Profile Rules (/users/{userId})', () => {
       email: 'test@example.com',
       displayName: 'Test User',
       providerId: 'google.com',
+      credits: 5,
+      monthlyResets: 0,
       createdAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
+      lastCreditReset: serverTimestamp(),
+      monthlyCycleStart: serverTimestamp(),
     };
     await assertFails(setDoc(doc(user123Db, `users/${user_123}`), profileData));
   });
@@ -146,8 +158,12 @@ describe('Firestore User Profile Rules (/users/{userId})', () => {
       email: 'other@example.com',
       displayName: 'Other User',
       providerId: 'password',
+      credits: 5,
+      monthlyResets: 0,
       createdAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
+      lastCreditReset: serverTimestamp(),
+      monthlyCycleStart: serverTimestamp(),
     };
     await assertFails(
       setDoc(doc(user123Db, `users/${other_user_456}`), profileData)
@@ -160,8 +176,12 @@ describe('Firestore User Profile Rules (/users/{userId})', () => {
       email: 'test@example.com',
       displayName: 'Test User',
       providerId: 'google.com',
+      credits: 5,
+      monthlyResets: 0,
       createdAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
+      lastCreditReset: serverTimestamp(),
+      monthlyCycleStart: serverTimestamp(),
     };
     await assertFails(setDoc(doc(unauthDb, `users/${user_123}`), profileData));
   });

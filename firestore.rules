@@ -50,115 +50,101 @@ service cloud.firestore {
 
     // Function to validate memory session data
     function isMemorySessionDataValid(data) {
-      // Check required fields and types for memory sessions
-      return data.summary is string && data.summary.size() > 0 &&
-             data.summarizedAt == request.time && // Check for server timestamp placeholder on create
+      return isNonEmptyString('summary') &&
+             data.summarizedAt == request.time &&
              data.sourceMessageIds is list && data.sourceMessageIds.size() > 0 &&
-             (data.tokenCount == null || data.tokenCount is number) && // Allow optional token count
-             (data.metadata == null || data.metadata is map); // Allow optional metadata field, ensure it's a map if present
+             data.messageCount is number && data.messageCount > 0 &&
+             data.personaId is string &&
+             (data.lastMessageTimestamp == null || data.lastMessageTimestamp is timestamp) &&
+             (data.tokenCount == null || data.tokenCount is number) &&
+             (data.metadata == null || data.metadata is map);
+    }
+
+    function isUserDataValid() {
+      let data = request.resource.data;
+      return isNonEmptyString('uid') && data.uid == request.auth.uid
+          && isNonEmptyString('email')
+          && isNonEmptyString('displayName')
+          && isNonEmptyString('providerId')
+          && data.credits == 5
+          && data.monthlyResets == 0
+          && isServerTimestamp('createdAt')
+          && isServerTimestamp('lastLoginAt')
+          && isServerTimestamp('lastCreditReset')
+          && isServerTimestamp('monthlyCycleStart');
+    }
+
+    function isUserUpdateValid() {
+      let data = request.resource.data;
+      let writeFields = request.writeFields;
+      return !('uid' in writeFields)
+          && !('email' in writeFields)
+          && !('providerId' in writeFields)
+          && !('createdAt' in writeFields)
+          && (!('credits' in writeFields) || (data.credits is number && data.credits >= 0))
+          && (!('monthlyResets' in writeFields) || (data.monthlyResets is number && data.monthlyResets >= 0))
+          && (!('lastCreditReset' in writeFields) || isServerTimestamp('lastCreditReset'))
+          && (!('monthlyCycleStart' in writeFields) || isServerTimestamp('monthlyCycleStart'))
+          && (!('photoURL' in writeFields) || (data.photoURL is string))
+          && (!('lastLoginAt' in writeFields) || isServerTimestamp('lastLoginAt'));
+    }
+
+    function isMessageDataValid(data) {
+      return isNonEmptyString('role') && data.role in ['user', 'assistant']
+          && isNonEmptyString('content')
+          && isNonEmptyString('persona')
+          && data.createdAt == request.time;
+    }
+
+    function isPersonaDataValid() {
+      let data = request.resource.data;
+      return isNonEmptyString('name')
+          && isNonEmptyString('description')
+          && isNonEmptyString('context')
+          && isServerTimestamp('createdAt');
     }
 
     // ==== User Profiles (/users/{userId}) ====
     match /users/{userId} {
-      // Allow owner to read their profile
       allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isUserDataValid();
+      allow update: if isOwner(userId) && isUserUpdateValid();
+      allow delete: if false;
 
-      // Allow owner to create their profile document only if it doesn't exist yet
-      // Validate required fields upon creation
-      allow create: if isOwner(userId)
-                      && isNonEmptyString('uid') && request.resource.data.uid == userId
-                      && isNonEmptyString('email')
-                      && isNonEmptyString('displayName') // Ensure display name is provided
-                      && isNonEmptyString('providerId')
-                      && request.resource.data.credits == 5
-                      && request.resource.data.monthlyResets == 0
-                      && isServerTimestamp('createdAt')
-                      && isServerTimestamp('lastLoginAt')
-                      && isServerTimestamp('lastCreditReset')
-                      && isServerTimestamp('monthlyCycleStart');
+      // ==== User Subcollections ====
 
-      // Allow owner to update specific fields with strict validation
-      allow update: if isOwner(userId)
-                      // Prevent modification of critical immutable fields
-                      && !('uid' in request.writeFields)
-                      && !('email' in request.writeFields)
-                      && !('providerId' in request.writeFields)
-                      && !('createdAt' in request.writeFields)
-                      // Validate credit updates to prevent artificial increases
-                      && (!('credits' in request.writeFields) || isValidCreditUpdate())
-                      // Validate other credit-related fields
-                      && (!('monthlyResets' in request.writeFields) || 
-                          (request.resource.data.monthlyResets is number && 
-                           request.resource.data.monthlyResets >= 0 && 
-                           request.resource.data.monthlyResets <= 6))
-                      // Validate timestamp fields
-                      && (!('lastCreditReset' in request.writeFields) || isServerTimestamp('lastCreditReset'))
-                      && (!('monthlyCycleStart' in request.writeFields) || isServerTimestamp('monthlyCycleStart'))
-                      && (!('lastLoginAt' in request.writeFields) || isServerTimestamp('lastLoginAt'))
-                      && (!('lastActive' in request.writeFields) || isServerTimestamp('lastActive'))
-                      // Validate optional fields
-                      && (!('displayName' in request.writeFields) || request.resource.data.displayName is string)
-                      && (!('photoURL' in request.writeFields) || 
-                          request.resource.data.photoURL == null || request.resource.data.photoURL is string)
-                      // Validate map fields
-                      && (!('personaLastActive' in request.writeFields) || request.resource.data.personaLastActive is map)
-                      && (!('personaLastSummaryTimestamp' in request.writeFields) || request.resource.data.personaLastSummaryTimestamp is map);
-
-      // Disallow listing all users and deleting profiles
-      allow list, delete: if false;
-    }
-
-    // ==== User Messages (/users/{userId}/messages/{messageId}) ====
-    match /users/{userId}/messages/{messageId} {
+      // -- Messages --
+      match /messages/{messageId} {
         allow read: if isOwner(userId);
-        allow create: if isOwner(userId)
-                        && isNonEmptyString('role') && request.resource.data.role in ['user', 'assistant']
-                        && isNonEmptyString('content')
-                        && isNonEmptyString('persona') // Assumes persona is always required for a message
-                        && request.resource.data.createdAt == request.time;
-        allow update, delete: if false;
-    }
+        allow create: if isOwner(userId) && isMessageDataValid(request.resource.data);
+        allow update, delete: if false; // Messages are immutable
+      }
 
-    // ==== Prevent listing of any subcollections under users (defense-in-depth) ====
-    match /users/{userId}/{subcollection=**} {
-      allow list: if false;
-    }
-
-    // ==== Per-Persona Summaries (/users/{userId}/personas/{personaId}/summaries/{summaryId}) ====
-    match /users/{userId}/personas/{personaId}/summaries/{summaryId} {
+      // -- Per-Persona Data --
+      match /personas/{personaId} {
         allow read: if isOwner(userId);
-        allow create: if isOwner(userId)
-                        && isNonEmptyString('summary')
-                        && request.resource.data.createdAt == request.time; // Assuming timestamp field is createdAt
-        allow update, delete: if false;
+        allow create: if isOwner(userId) && isPersonaDataValid();
+        allow update: if isOwner(userId); // more granular later
+        allow delete: if isOwner(userId);
+
+        // -- Memory Sessions (Summaries) --
+        match /memory_sessions/{sessionId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId) && isMemorySessionDataValid(request.resource.data);
+          allow update, delete: if false; // Summaries are immutable
+        }
+
+        // -- Session Metadata --
+        match /session/metadata {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId) && isTimestampOrNull('lastSummarizedMessageTimestamp');
+          allow update: if isOwner(userId) 
+                         && request.writeFields.hasOnly(['lastSummarizedMessageTimestamp'])
+                         && (request.resource.data.lastSummarizedMessageTimestamp == null || 
+                             request.resource.data.lastSummarizedMessageTimestamp is timestamp);
+          allow delete: if false;
+        }
+      }
     }
-
-    // ==== Per-Persona Session Metadata (/users/{userId}/personas/{personaId}/session/metadata) ====
-    match /users/{userId}/personas/{personaId}/session/metadata {
-        allow read: if isOwner(userId); // Changed from 'get' to 'read' for consistency
-        allow create: if isOwner(userId)
-                        && isTimestampOrNull('lastSummarizedMessageTimestamp');
-        allow update: if isOwner(userId)
-                        && request.writeFields.hasOnly(['lastSummarizedMessageTimestamp'])
-                        && (request.resource.data.lastSummarizedMessageTimestamp == null || 
-                            request.resource.data.lastSummarizedMessageTimestamp is timestamp);
-        allow list, delete: if false;
-    }
-
-    // ==== Memory Sessions (/users/{userId}/personas/{personaId}/memory_sessions/{sessionId}) ====
-    match /users/{userId}/personas/{personaId}/memory_sessions/{sessionId} {
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && isMemorySessionDataValid(request.resource.data);
-      allow update, delete: if false;
-    }
-
-    // Default deny for any unmatched paths
-  } // End match /databases/{database}/documents
-
-  // ==== Explicit default deny for all unmatched paths (defense-in-depth) ====
-  match /{document=**} {
-    allow read, write: if false;
   }
-} // End service cloud.firestore
-
-// *** Redundant/Unused functions removed from here ***
+}

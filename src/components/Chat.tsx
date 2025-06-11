@@ -30,10 +30,11 @@ import {
   updateLastSummaryTimestamp,
 } from "@/firebase/firestoreUtils";
 import { Loader2, AlertTriangle, CreditCard, X } from "lucide-react";
-import { Timestamp } from "firebase/firestore";
+import { Timestamp, getDoc, doc } from "firebase/firestore";
 import { SummaryMetadata } from "@/types/memory";
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { db } from "@/firebase/firebaseConfig";
 
 type DisplayMessage = MessageType;
 
@@ -136,7 +137,7 @@ IMPORTANT: You have access to full emotional memory of the user use it to fully 
 const PAGE_SIZE = 30;
 
 const Chat = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, credits } = useAuth();
   const [currentPersona, setCurrentPersona] = useState<Persona>({
     id: "raze",
     name: "Raze",
@@ -157,6 +158,7 @@ const Chat = () => {
   const listenerAttachedRef = useRef<{ [key: string]: boolean }>({});
   const listenerDebounceTimersRef = useRef<{ [key: string]: NodeJS.Timeout | null }>({}); // Ref for debounce timers
   const isSummarizingRef = useRef<{ [key: string]: boolean }>({}); // Ref for locking
+  const justSwitchedPersona = useRef(false);
   // Ref to store metadata used in the *last* prompt construction per persona
   const lastUsedMetadataRef = useRef<{
     [personaId: string]: {
@@ -165,6 +167,7 @@ const Chat = () => {
       triggers: Set<string>;
     } | null;
   }>({});
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -175,6 +178,8 @@ const Chat = () => {
   const [paginationCursor, setPaginationCursor] = useState<import('firebase/firestore').QueryDocumentSnapshot | null>(null); // Firestore QueryDocumentSnapshot
   const [isPaginating, setIsPaginating] = useState(false);
   const [allMessagesLoaded, setAllMessagesLoaded] = useState(false);
+  const optimisticMessageIdRef = useRef<string | null>(null);
+  const isInitialLoadRef = useRef(true);
 
   // --- Effects ---
 
@@ -267,7 +272,7 @@ This persona is built for transformation. Unfiltered, fierce, and human.
         if (cancelled) return;
         const displayMessages: DisplayMessage[] = page.map(msg => ({
           id: msg.id,
-          sender: msg.role === 'user' ? 'user' : 'ai',
+          sender: msg.role === 'user' ? 'user' : 'assistant',
           content: msg.content,
           timestamp: msg.createdAt || new Date(),
         }));
@@ -298,7 +303,7 @@ This persona is built for transformation. Unfiltered, fierce, and human.
           } else {
             const displayMessages: DisplayMessage[] = page.map(msg => ({
               id: msg.id,
-              sender: msg.role === 'user' ? 'user' : 'ai',
+              sender: msg.role === 'user' ? 'user' : 'assistant',
               content: msg.content,
               timestamp: msg.createdAt || new Date(),
             }));
@@ -323,202 +328,261 @@ This persona is built for transformation. Unfiltered, fierce, and human.
   };
 
   // Function to scroll chat to the bottom
-  const scrollToBottom = () => {
+  const scrollToBottom = (behavior: 'smooth' | 'auto' = 'smooth') => {
     // Use timeout to allow DOM update before scrolling
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 10);
+      if (chatContainerRef.current) {
+        // Force a reflow to combat mobile browser rendering glitches
+        void chatContainerRef.current.offsetHeight;
+      }
+      messagesEndRef.current?.scrollIntoView({ behavior });
+    }, 50); // Increased timeout for reliability
   };
 
-  // Effect to scroll to bottom when messages change for the current persona
+  // Effect to scroll to bottom when new messages are added or persona switches
+  const lastMessage = paginatedMessages.length > 0 ? paginatedMessages[paginatedMessages.length - 1] : null;
   useEffect(() => {
-    scrollToBottom();
-  }, [currentChat.messages]); // Dependency on the messages array
-
-  // --- Summarization Logic ---
-  const SUMMARIZE_THRESHOLD = 6; // Trigger every 6 messages
-
-  // Debounced summarization trigger function
-  const triggerMemorySummarizationIfNeeded = useCallback(async (messageList: DisplayMessage[]) => {
-    if (!currentUser || !currentPersona) {
+    if (isPaginating) {
       return;
     }
+
+    // After switching persona and messages are loaded, scroll instantly.
+    if (justSwitchedPersona.current) {
+      scrollToBottom('auto');
+      justSwitchedPersona.current = false; // Reset the flag
+    } else {
+      // For subsequent new messages, scroll smoothly.
+      scrollToBottom('smooth');
+    }
+  }, [lastMessage, isPaginating]);
+
+  const triggerMemorySummarizationIfNeeded = useCallback(async (messageList: DisplayMessage[]) => {
+    if (!currentUser || !currentPersona) return;
+
     const userId = currentUser.uid;
     const personaId = currentPersona.id;
 
+    if (isSummarizingRef.current[personaId]) {
+      return;
+    }
+
     try {
-      // Fetch the timestamp of the last successful summary for this persona
       const lastSummaryTimestamp = await getLastSummaryTimestamp(userId, personaId);
 
-      // Filter messages created after the last summary timestamp
       const relevantMessagesSinceLastSummary = messageList.filter(msg => {
         const msgTimestamp = msg.timestamp;
-        if (!msgTimestamp) return false; // Ignore messages without a timestamp
-        // If no last summary, all messages with a timestamp are relevant
+        if (!msgTimestamp) return false;
         if (!lastSummaryTimestamp) return true;
-        // Otherwise, only include messages strictly newer than the last summary
         return msgTimestamp.getTime() > lastSummaryTimestamp.toMillis();
       });
 
       const count = relevantMessagesSinceLastSummary.length;
 
-      // Check if the count meets the threshold
-      if (count >= SUMMARIZE_THRESHOLD) {
-
-        // Map the relevant messages, explicitly typing the result for role
+      if (count >= 6) { // SUMMARIZE_THRESHOLD
+        isSummarizingRef.current[personaId] = true;
+        console.log("Full conversational turn completed. Starting summarization process...");
         const messagesToSummarize = relevantMessagesSinceLastSummary.map(msg => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.content
         } as { role: 'user' | 'assistant'; content: string }));
 
-        // Select the appropriate AI service based on persona
         const summarizationService = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
         if (!summarizationService) {
-          console.error("SUMMARIZE_CHECK: ERROR - Summarization service instance not found for", personaId); // Keep error logs
           throw new Error(`Summarization service not available for ${personaId}`);
         }
-        // Generate the summary
-        // Destructure summary, tokenCount, AND metadata
-        // Ensure the type matches the expected return { summary: string; metadata: SummaryMetadata | null; tokenCount?: number }
+
         const { summary, tokenCount, metadata } = await summarizationService.generateSummary(messagesToSummarize);
 
-        // Check if the summary is valid before saving
         if (summary && summary.trim().length > 0) {
           const sourceMessageIds = relevantMessagesSinceLastSummary.map(msg => msg.id);
-
-          // Ensure metadata is not null before saving
           const finalMetadata: SummaryMetadata = metadata || {};
 
-          // Save the summary AND metadata to Firestore
-          const summaryId = await saveSummary(userId, personaId, summary, sourceMessageIds, tokenCount, finalMetadata);
+          // Get the timestamp from the last message in the list to be summarized.
+          const lastMessage = relevantMessagesSinceLastSummary[relevantMessagesSinceLastSummary.length - 1];
+          const lastMessageTimestamp = lastMessage?.timestamp ? Timestamp.fromDate(lastMessage.timestamp) : Timestamp.now();
+          const messageCount = messagesToSummarize.length;
 
-          // Update the timestamp marker in the user document
+          // Save the new summary with all required fields
+          await saveSummary(
+            userId,
+            personaId,
+            summary,
+            sourceMessageIds,
+            messageCount,
+            lastMessageTimestamp,
+            tokenCount,
+            finalMetadata
+          );
+
+          // Update the timestamp in session metadata to prevent re-summarizing the same messages
           await updateLastSummaryTimestamp(userId, personaId);
         }
       }
     } catch (error) {
-      // Log any errors encountered during the process
-      console.error("SUMMARIZE_CHECK: ERROR during summarization check/process:", error); // Keep error logs
+      console.error("ERROR during summarization check/process:", error);
+    } finally {
+      if (isSummarizingRef.current[personaId]) {
+        isSummarizingRef.current[personaId] = false;
+      }
     }
-  }, [currentUser, currentPersona, SUMMARIZE_THRESHOLD]); // Dependencies remain the same
+  }, [currentUser, currentPersona]);
 
+  // Effect for loading history and triggering summarization from listener
+  useEffect(() => {
+    if (!currentUser?.uid || !currentPersona?.id) {
+      setIsHistoryLoading(false);
+      return;
+    }
+    const userId = currentUser.uid;
+    const personaId = currentPersona.id;
+    let unsubscribeListener: (() => void) | null = null;
+
+    const loadAndListen = async () => {
+      setIsHistoryLoading(true);
+      isInitialLoadRef.current = true; // Signal that we are loading historical data
+      try {
+        const initialMessages = await getInitialMessages(userId, personaId);
+        const initialDisplayMessages: DisplayMessage[] = initialMessages.map(msg => ({
+          id: msg.id,
+          sender: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.content,
+          timestamp: msg.createdAt || new Date()
+        }));
+
+        setPaginatedMessages(initialDisplayMessages);
+      } catch (error) {
+        console.error(`LOAD_EFFECT: Error during initial load for ${personaId}:`, error);
+      } finally {
+        setIsHistoryLoading(false); // This will trigger the useEffect below to flip the initial load ref
+      }
+
+      unsubscribeListener = getMessages(
+        userId,
+        personaId,
+        (newMessages) => {
+          const newDisplayMessages: DisplayMessage[] = newMessages.map(msg => ({
+            id: msg.id,
+            sender: msg.role === 'user' ? 'user' : 'assistant',
+            content: msg.content,
+            timestamp: msg.createdAt || new Date()
+          }));
+
+          setPaginatedMessages(prevMessages => {
+            const messageMap = new Map();
+            const tempId = optimisticMessageIdRef.current;
+
+            // Add previous messages, but specifically skip the optimistic one.
+            prevMessages.forEach(msg => {
+              if (msg.id !== tempId) {
+                messageMap.set(msg.id, msg);
+              }
+            });
+
+            // Add the new messages from Firestore, which includes the final version of the user's message.
+            newDisplayMessages.forEach(msg => messageMap.set(msg.id, msg));
+
+            // If the optimistic message was found and replaced, we can clear the ref.
+            if (tempId) {
+              optimisticMessageIdRef.current = null;
+            }
+
+            return Array.from(messageMap.values()).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+          });
+        },
+        (error) => {
+          console.error(`REALTIME_LISTENER: Error for ${personaId}:`, error);
+        }
+      );
+    };
+
+    loadAndListen();
+
+    return () => {
+      if (unsubscribeListener) {
+        unsubscribeListener();
+      }
+    };
+  }, [currentUser, currentPersona.id, triggerMemorySummarizationIfNeeded]);
+
+  // When history loading finishes, mark the initial load as complete.
+  useEffect(() => {
+    if (!isHistoryLoading) {
+      isInitialLoadRef.current = false;
+    }
+  }, [isHistoryLoading]);
+
+  // This is the single source of truth for when to check for a summary.
+  useEffect(() => {
+    const hasOptimisticMessage = paginatedMessages.some(msg => msg.id.startsWith('temp-'));
+    const lastMessage = paginatedMessages[paginatedMessages.length - 1];
+
+    if (
+      !isInitialLoadRef.current &&
+      paginatedMessages.length > 0 &&
+      !isSummarizingRef.current[currentPersona.id] &&
+      !hasOptimisticMessage &&
+      lastMessage?.sender === 'assistant'
+    ) {
+      triggerMemorySummarizationIfNeeded(paginatedMessages);
+    }
+  }, [paginatedMessages, triggerMemorySummarizationIfNeeded, currentPersona.id]);
 
   // Main message sending handler
   const handleSendMessage = async (messageContent: string) => {
-    // Ensure user and services are ready
+    // --- Pre-send Credit Check ---
+    if (credits !== null && credits <= 0) {
+      setShowOutOfCreditsNotice(true);
+      return; // Stop execution if no credits
+    }
+    // ----------------------------
+
     if (!currentUser || !chatGPTServiceRef.current || !claudeServiceRef.current) {
-      console.error("Cannot send message: User not logged in or AI services not initialized."); // Keep error logs
       return;
     }
     const userId = currentUser.uid;
     const personaId = currentPersona.id;
 
-    // Reset error states before sending
+    // --- Optimistic UI Update ---
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage: DisplayMessage = {
+      id: tempId,
+      sender: 'user',
+      content: messageContent,
+      timestamp: new Date(),
+    };
+    optimisticMessageIdRef.current = tempId; // Store ref to the temp ID
+    setPaginatedMessages(prev => [...prev, optimisticMessage]);
+    // --------------------------
+
     setShowOutOfCreditsNotice(false);
     setChatHistories(prev => ({
       ...prev,
       [personaId]: {
         ...(prev[personaId] || { messages: [], isAiResponding: false, error: null }),
         isAiResponding: true,
-        error: null, // Clear previous errors
+        error: null,
       }
     }));
     setIsLoadingMessages(true);
 
     try {
-      // Mark session as active
-      await markSessionAsActive(userId, personaId);
-
-      // Save user message to Firestore. The listener will pick this up.
-      await saveMessage(currentUser, personaId, 'user', messageContent);
+      // Save user message. The listener will handle the UI update.
+      const savedUserMessageId = await saveMessage(currentUser, personaId, 'user', messageContent);
 
       // Construct and inject dynamic prompt including memory
       let finalSystemPrompt = "";
 
-      const currentMessagesForContext = chatHistories[personaId]?.messages || [];
       const summaries = await getRecentMemorySummaries(userId, personaId, 3);
-
-      // --- Extract Summary Text (from fetched summaries) ---
       const fusedMemory = summaries
         .map(s => s.summary ? `• ${s.summary}` : '')
         .filter(s => s)
         .join('\n').trim();
 
-      // --- Extract and Format Metadata (from latest 3 summaries, limited items) ---
-      const summariesForMetadata = summaries.slice(0, 3); // Use latest 3
-      const currentPeopleSet = new Set<string>();
-      const currentThemesSet = new Set<string>();
-      const currentTriggersSet = new Set<string>();
-      const eventsSet = new Set<string>();
-
-      summariesForMetadata.forEach(s => {
-        if (s.metadata) {
-          s.metadata.key_people?.forEach(p => currentPeopleSet.add(p));
-          s.metadata.key_events?.forEach(e => eventsSet.add(e));
-          s.metadata.emotional_themes?.forEach(t => currentThemesSet.add(t));
-          s.metadata.triggers?.forEach(tr => currentTriggersSet.add(tr));
-        }
-      });
-
-      // --- Compare Metadata and Inject Conditionally ---
-      let fusedMetadata = '';
-      const MAX_METADATA_ITEMS = 4; // Limit each category
-      let metadataChanged = false;
-
-      const lastMetadata = lastUsedMetadataRef.current[personaId];
-
-      // Helper function to compare sets
-      const setsAreEqual = (setA: Set<string>, setB: Set<string>) => {
-        if (setA.size !== setB.size) return false;
-        for (const item of setA) {
-          if (!setB.has(item)) return false;
-        }
-        return true;
-      };
-
-      // Check if any relevant metadata set has changed
-      if (!lastMetadata ||
-        !setsAreEqual(currentPeopleSet, lastMetadata.people) ||
-        !setsAreEqual(currentThemesSet, lastMetadata.themes) ||
-        !setsAreEqual(currentTriggersSet, lastMetadata.triggers)) {
-        metadataChanged = true;
-
-        // Build the metadata string ONLY if changed
-        if (currentPeopleSet.size > 0) {
-          fusedMetadata += `\n\n## Key People Recently Mentioned:\n${Array.from(currentPeopleSet).slice(0, MAX_METADATA_ITEMS).map(p => `- ${p}`).join('\n')}`;
-        }
-        if (currentTriggersSet.size > 0) {
-          fusedMetadata += `\n\n## Key Triggers Recently Mentioned:\n${Array.from(currentTriggersSet).slice(0, MAX_METADATA_ITEMS).map(t => `- ${t}`).join('\n')}`;
-        }
-        if (currentThemesSet.size > 0) {
-          const themeList = Array.from(currentThemesSet).slice(0, MAX_METADATA_ITEMS).join(', ');
-          fusedMetadata += `\n\n## Use Past Emotional Themes for Recall:`;
-          fusedMetadata += `\nRecognized themes from recent summaries include: ${themeList}.`;
-          fusedMetadata += `\nWhen relevant, connect the current conversation to these past themes to highlight patterns or growth. For example: "This feeling of [current emotion] echoes the theme of [past theme, e.g., 'abandonment'] we explored regarding [person/situation, if context allows]. What feels different for you this time?" Use your judgment to weave these connections naturally and powerfully, in the Raze voice.`;
-        }
-      }
-
-      // --- Update stored metadata for next comparison --- 
-      lastUsedMetadataRef.current[personaId] = {
-        people: currentPeopleSet,
-        themes: currentThemesSet,
-        triggers: currentTriggersSet
-      };
-      // --- End Metadata Logic ---
-
-      // Include the last 6 raw messages (reduced from 8)
-      const lastMessages = currentMessagesForContext
-        .slice(-6) // Get last 6 messages
-        .map((msg) => `${msg.sender === 'user' ? 'User' : 'AI'}: ${msg.content}`)
-        .join('\n');
-
       const baseSystemPrompt = getBaseSystemPrompt(personaId);
 
-      // Construct the final prompt
       finalSystemPrompt = `
 ## Context from Recent Summaries & Messages:
 ${fusedMemory || 'No previous summaries available.'}
-${fusedMetadata.trim()} // Contains People, Triggers, and explicit Theme Recall instructions
 
 ## IMPORTANT:Behave and Repsond always following the instructions below:
 ${baseSystemPrompt}
@@ -527,80 +591,76 @@ ${baseSystemPrompt}
 User: ${messageContent}
       `.trim();
 
-      // Rough token estimation: 1 token ~= 4 characters
-      const estimatedTokens = Math.ceil(finalSystemPrompt.length / 4);
+      // console.log("\n--- FINAL PROMPT TO BE SENT (START) ---\n", finalSystemPrompt, "\n--- FINAL PROMPT TO BE SENT (END) ---");
+      // const estimatedTokens = Math.ceil(finalSystemPrompt.length / 4);
+      // console.log(`>>> Estimated Prompt Token Count: ${estimatedTokens} (Length: ${finalSystemPrompt.length})`);
 
-      // Inject into the correct service
       const service = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
       service?.setSystemPrompt(finalSystemPrompt);
 
       const aiResponse = await service.sendMessage(messageContent);
+      // Save AI message. The listener will handle the UI update.
       await saveMessage(currentUser, personaId, 'assistant', aiResponse);
 
-      // After sending, reload the latest page
-      const page = await fetchMessagesPage(currentUser.uid, currentPersona.id, PAGE_SIZE);
-      const displayMessages: DisplayMessage[] = page.map(msg => ({
-        id: msg.id,
-        sender: msg.role === 'user' ? 'user' : 'ai',
-        content: msg.content,
-        timestamp: msg.createdAt || new Date(),
-      }));
-      setPaginatedMessages(displayMessages.reverse());
-      setPaginationCursor(page.length > 0 ? page[page.length - 1].docSnapshot : null);
-      setAllMessagesLoaded(page.length < PAGE_SIZE);
-      setIsLoadingMessages(false);
+      // All message state updates are now handled by the listener.
+      // We just manage the loading indicators here.
       setChatHistories(prev => {
-        const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: true, error: null };
-        return { ...prev, [personaId]: { ...prevPersonaState, isAiResponding: false } };
+        const currentHistory = prev[personaId] || { messages: [], isAiResponding: true, error: null };
+        return { ...prev, [personaId]: { ...currentHistory, isAiResponding: false } };
       });
+      setIsLoadingMessages(false);
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to send message. Please try again.";
-      console.error(`HANDLE_SEND: Error during message processing for ${personaId}:`, error);
+      console.error("Error during message sending:", error);
 
-      // If out of credits, show the dedicated notice instead of the generic error.
-      if (errorMessage.toLowerCase().includes('insufficient credits')) {
+      // On any error, first remove the optimistic message from the UI
+      setPaginatedMessages(prev => prev.filter(msg => msg.id !== optimisticMessageIdRef.current));
+      optimisticMessageIdRef.current = null;
+
+      // Check for the specific "Insufficient credits" error
+      if (error instanceof Error && error.message.includes('Insufficient credits')) {
         setShowOutOfCreditsNotice(true);
-        // We set a non-visible error state just to stop the AI responding indicator
-        setChatHistories(prev => {
-          const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: false, error: null };
-          return {
-            ...prev,
-            [personaId]: {
-              ...prevPersonaState,
-              isAiResponding: false,
-              error: 'NoCredits' // Special identifier, not shown to user
-            }
-          };
-        });
+        // Reset loading state without setting a generic error
+        setChatHistories(prev => ({
+          ...prev,
+          [personaId]: {
+            ...(prev[personaId] || { messages: [], isAiResponding: false, error: null }),
+            isAiResponding: false,
+            error: null,
+          },
+        }));
       } else {
-        // Handle other errors normally
-        setChatHistories(prev => {
-          const prevPersonaState = prev[personaId] || { messages: [], isAiResponding: false, error: null };
-          return {
-            ...prev,
-            [personaId]: {
-              ...prevPersonaState,
-              isAiResponding: false,
-              error: errorMessage,
-            }
-          };
-        });
+        // For all other errors, show the generic error message
+        setChatHistories(prev => ({
+          ...prev,
+          [personaId]: {
+            ...(prev[personaId] || { messages: [], isAiResponding: false, error: null }),
+            isAiResponding: false,
+            error: error.message,
+          },
+        }));
       }
-    } finally {
       setIsLoadingMessages(false);
     }
   };
 
   // Persona selection handler
   const handlePersonaSelect = (persona: Persona) => {
-    // Prevent re-loading if the current persona is clicked again
     if (persona.id === currentPersona.id) {
       return;
     }
+    isInitialLoadRef.current = true; // Reset flag on persona change
     setCurrentPersona(persona);
-    setIsHistoryLoading(true); // Start loading indicator for new persona history
+    setIsHistoryLoading(true);
   };
+
+  // Effect to manage body scroll (prevent scrolling behind chat)
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'auto'; // Restore on unmount
+    };
+  }, []);
 
   // Conditional Rendering for Error State
   // Do not show the generic error view if the specific 'OutOfCreditsNotice' is shown.
@@ -622,8 +682,8 @@ User: ${messageContent}
 
   // JSX Return
   return (
-    <div className="w-full h-full bg-[#FFF8E1] p-4 md:p-4 lg:p-6 flex items-center justify-center">
-      <div className="flex flex-col h-full w-full max-w-4xl mx-auto bg-white/80 md:rounded-2xl shadow-2xl overflow-hidden backdrop-blur-sm border border-orange-200/30">
+    <div className="w-full h-full bg-[#FFF8E1] p-0 md:p-4 lg:p-6 flex items-center justify-center">
+      <div className="flex flex-col h-full w-full max-w-4xl mx-auto bg-white/80 rounded-none md:rounded-2xl shadow-none md:shadow-2xl overflow-hidden backdrop-blur-sm border-0 md:border border-orange-200/30">
         <ChatHeader
           onPersonaSelect={handlePersonaSelect}
           currentPersona={currentPersona}
@@ -654,8 +714,10 @@ User: ${messageContent}
               )}
               {/* Show welcome messages only if not loading and no messages exist */}
               {!showLoadingIndicator && paginatedMessages.length === 0 && (
-                <div className="text-center text-muted-foreground py-8">
-                  <p>{introPrompt}</p>
+                <div className="flex justify-center text-center text-muted-foreground py-8">
+                  <p className="whitespace-pre-wrap max-w-md">
+                    {introPrompt}
+                  </p>
                 </div>
               )}
               {/* Render chat messages */}

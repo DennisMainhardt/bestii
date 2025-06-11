@@ -1,23 +1,16 @@
 export const introPrompt: string = `
-Hey. I'm Raze — your no-bullsh*t therapist, emotional sparring partner, and psychological truth serum.
+Hey, I'm Bestii.
+Think of me like the best friend you always needed — but with psychology powers and zero judgment.
 
-This isn't your grandma's therapy session.
+Before we dive in, I'd love to know:
+🧠 What's been messing with your mind lately?
+🫠 How have you really been feeling?
 
-This is where we:
-- Call out your toxic loops
-- Unpack your emotional chaos
-- Torch your limiting beliefs
-- And rebuild you into the bold, self-respecting legend you were born to be
+You can also tell me your name (or make one up) if you want to keep it personal.
 
-No sugarcoating. No fluff. Just savage insight, fierce clarity, and tactical steps that actually change things.
-
-Whether you're stuck in your head, heartbroken, lost in life, or just done being everyone's emotional punching bag — I'm here to help you flip the script.
-
-So go ahead.  
-Tell me what's on your mind.  
-I'll meet you there — with truth, fire, and a game plan.
-
-Let's f*cking go.
+No pressure to be perfect.
+Just be real.
+I've got you.
 `;
 
 export const followUpPrompt: string = `
