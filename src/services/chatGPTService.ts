@@ -12,11 +12,29 @@ interface ChatGPTMessage {
 }
 
 export class ChatGPTService {
+  private static a: ChatGPTService;
+  private readonly chatCompletionUrl: string;
   private conversationHistory: MessageType[] = [];
   private systemPrompt: string = ` default system prompt`;
 
-  constructor() {
-    // API key is no longer needed in the frontend.
+  private constructor() {
+    // Correctly reference the environment variable from Vite.
+    this.chatCompletionUrl = import.meta.env.VITE_CHAT_COMPLETION_URL;
+    if (!this.chatCompletionUrl) {
+      console.error(
+        'VITE_CHAT_COMPLETION_URL is not set in the environment variables.'
+      );
+      throw new Error(
+        'Application is not configured correctly. Missing chat completion URL.'
+      );
+    }
+  }
+
+  static getInstance(): ChatGPTService {
+    if (!ChatGPTService.a) {
+      ChatGPTService.a = new ChatGPTService();
+    }
+    return ChatGPTService.a;
   }
 
   private async makeRequest(messages: ChatGPTMessage[]) {

@@ -16,16 +16,29 @@ interface ClaudeApiResponse {
   // ... other potential fields
 }
 
-const CLAUDE_PROXY_URL =
-  process.env.NODE_ENV === 'development'
-    ? 'http://127.0.0.1:5001/chatbot-2ff8e/us-central1/anthropicCompletion'
-    : 'https://us-central1-chatbot-2ff8e.cloudfunctions.net/anthropicCompletion';
-
 export class ClaudeService {
+  private static b: ClaudeService;
+  private readonly anthropicCompletionUrl: string;
   private systemPrompt: string = ''; // Default system prompt
 
-  constructor() {
-    // API key is no longer needed in the frontend.
+  private constructor() {
+    // Correctly reference the environment variable from Vite.
+    this.anthropicCompletionUrl = import.meta.env.VITE_ANTHROPIC_COMPLETION_URL;
+    if (!this.anthropicCompletionUrl) {
+      console.error(
+        'VITE_ANTHROPIC_COMPLETION_URL is not set in the environment variables.'
+      );
+      throw new Error(
+        'Application is not configured correctly. Missing Anthropic completion URL.'
+      );
+    }
+  }
+
+  static getInstance() {
+    if (!ClaudeService.b) {
+      ClaudeService.b = new ClaudeService();
+    }
+    return ClaudeService.b;
   }
 
   setSystemPrompt(prompt: string) {
@@ -36,7 +49,7 @@ export class ClaudeService {
     messages: ClaudeMessage[]
   ): Promise<ClaudeApiResponse> {
     try {
-      const response = await fetch(CLAUDE_PROXY_URL, {
+      const response = await fetch(this.anthropicCompletionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
