@@ -116,7 +116,32 @@ export class ClaudeService {
       const jsonResponseText =
         response.content.find((c) => c.type === 'text')?.text || '{}';
 
-      const parsed = JSON.parse(jsonResponseText);
+      // Robustly parse the JSON from the response text
+      let parsed = { summary: '', metadata: null };
+      try {
+        // Find the start and end of the JSON object
+        const startIndex = jsonResponseText.indexOf('{');
+        const endIndex = jsonResponseText.lastIndexOf('}') + 1;
+        if (startIndex > -1 && endIndex > -1) {
+          const jsonString = jsonResponseText.substring(startIndex, endIndex);
+          parsed = JSON.parse(jsonString);
+        } else {
+          throw new Error('No valid JSON object found in the response.');
+        }
+      } catch (e) {
+        console.error(
+          'Failed to parse summary JSON:',
+          e,
+          'Raw response:',
+          jsonResponseText
+        );
+        // Fallback to error summary if parsing fails
+        return {
+          summary: 'Error creating summary due to parsing failure.',
+          metadata: null,
+        };
+      }
+
       const summary = parsed.summary || '';
       const metadata = parsed.metadata || null;
 
