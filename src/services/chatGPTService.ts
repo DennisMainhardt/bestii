@@ -1,7 +1,10 @@
 import { MessageType } from '@/types/message';
 import { SummaryMetadata } from '@/types/memory';
 
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_PROXY_URL =
+  process.env.NODE_ENV === 'development'
+    ? 'http://127.0.0.1:5001/chatbot-2ff8e/us-central1/chatCompletion'
+    : 'https://us-central1-chatbot-2ff8e.cloudfunctions.net/chatCompletion';
 
 interface ChatGPTMessage {
   role: 'user' | 'assistant' | 'system';
@@ -9,25 +12,20 @@ interface ChatGPTMessage {
 }
 
 export class ChatGPTService {
-  private apiKey: string;
   private conversationHistory: MessageType[] = [];
   private systemPrompt: string = ` default system prompt`;
 
-  constructor(apiKey: string) {
-    if (!apiKey) {
-      throw new Error('OpenAI API key is required');
-    }
-    this.apiKey = apiKey;
+  constructor() {
+    // API key is no longer needed in the frontend.
   }
 
   private async makeRequest(messages: ChatGPTMessage[]) {
     try {
-      console.log('Making request to OpenAI API...');
-      const response = await fetch(OPENAI_API_URL, {
+      console.log('Making request to OpenAI proxy...');
+      const response = await fetch(OPENAI_PROXY_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           model: 'gpt-4.1',
@@ -42,20 +40,20 @@ export class ChatGPTService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('OpenAI API Error:', {
+        console.error('OpenAI proxy Error:', {
           status: response.status,
           statusText: response.statusText,
           error: errorData,
         });
         throw new Error(
-          `OpenAI API error: ${response.status} ${response.statusText}`
+          `OpenAI proxy error: ${response.status} ${response.statusText}`
         );
       }
 
       const data = await response.json();
       return data.choices[0].message.content;
     } catch (error) {
-      console.error('Error making request to ChatGPT:', error);
+      console.error('Error making request to ChatGPT proxy:', error);
       if (error instanceof Error) {
         throw new Error(`Failed to get response: ${error.message}`);
       }
@@ -91,7 +89,7 @@ export class ChatGPTService {
       const aiMessage: MessageType = {
         id: (Date.now() + 1).toString(),
         content: response,
-        sender: 'ai',
+        sender: 'assistant',
         timestamp: new Date(),
       };
       this.conversationHistory.push(aiMessage);
@@ -160,11 +158,10 @@ Return everything in a single JSON object with the following structure:
       // console.log(
       //   `ChatGPTService::generateSummary - Requesting summary with ${messagesToSummarize.length} messages and max_tokens=${actualMaxTokens}`
       // );
-      const response = await fetch(OPENAI_API_URL, {
+      const response = await fetch(OPENAI_PROXY_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           model: 'gpt-4.1', // Or another suitable model

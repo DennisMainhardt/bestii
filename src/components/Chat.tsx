@@ -185,22 +185,9 @@ const Chat = () => {
 
   // Initialize AI Services
   useEffect(() => {
-    const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    const anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-
-    if (!openaiApiKey) {
-      console.error('OpenAI API key is not set');
-      // Optionally set an error state in chatHistories
-      return;
-    }
-    if (!anthropicApiKey) {
-      console.error('Anthropic API key is not set');
-      // Optionally set an error state in chatHistories
-      return;
-    }
-
-    chatGPTServiceRef.current = new ChatGPTService(openaiApiKey);
-    claudeServiceRef.current = new ClaudeService(anthropicApiKey);
+    // API keys are handled by the backend, so we can initialize directly.
+    chatGPTServiceRef.current = new ChatGPTService();
+    claudeServiceRef.current = new ClaudeService();
   }, []);
 
   // Effect to fetch recent session summaries when user or persona changes

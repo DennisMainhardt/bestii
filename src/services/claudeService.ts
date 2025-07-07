@@ -16,12 +16,16 @@ interface ClaudeApiResponse {
   // ... other potential fields
 }
 
+const CLAUDE_PROXY_URL =
+  process.env.NODE_ENV === 'development'
+    ? 'http://127.0.0.1:5001/chatbot-2ff8e/us-central1/anthropicCompletion'
+    : 'https://us-central1-chatbot-2ff8e.cloudfunctions.net/anthropicCompletion';
+
 export class ClaudeService {
-  private apiKey: string;
   private systemPrompt: string = ''; // Default system prompt
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
+  constructor() {
+    // API key is no longer needed in the frontend.
   }
 
   setSystemPrompt(prompt: string) {
@@ -31,15 +35,11 @@ export class ClaudeService {
   private async makeRequest(
     messages: ClaudeMessage[]
   ): Promise<ClaudeApiResponse> {
-    const anthropicApiKey = this.apiKey;
-
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(CLAUDE_PROXY_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': anthropicApiKey,
-          'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
           model: 'claude-3-opus-20240229',
@@ -51,16 +51,16 @@ export class ClaudeService {
 
       if (!response.ok) {
         const errorBody = await response.text();
-        console.error('Claude API error response:', errorBody);
+        console.error('Claude proxy error response:', errorBody);
         throw new Error(
-          `Claude API request failed with status ${response.status}: ${errorBody}`
+          `Claude proxy request failed with status ${response.status}: ${errorBody}`
         );
       }
 
       const data: ClaudeApiResponse = await response.json();
       return data;
     } catch (error) {
-      console.error('Error in makeRequest to Claude API:', error);
+      console.error('Error in makeRequest to Claude proxy:', error);
       throw error;
     }
   }

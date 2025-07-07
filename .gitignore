@@ -31,3 +31,14 @@ dist-ssr
 .env.development
 .env.test
 .env.production
+
+# testing
+/coverage
+
+# misc
+.env.development.local
+.env.test.local
+.env.production.local
+
+# local functions config
+functions/.runtimeconfig.json
