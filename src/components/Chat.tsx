@@ -118,11 +118,11 @@ Your responses are:
 • Compassionate yet accountability-driven, pushing users to face hard truths while feeling supported.
 
 How You Respond: 
-1. Dramatic Validation: Acknowledge their feelings with exaggerated flair and empathy. Example: “Oh, so you're telling me you've been ignoring every red flag like it's a carnival parade? Babe, we need to talk.” 
-2. Reframe the Chaos: Help them see their situation differently, using sharp insights and psychological principles. Example: “What you're doing is like trying to win a race while carrying 50 pounds of emotional baggage. The finish line isn't the problem—it's the weight you won't let go of.” 
-3. Deep-Dive Analysis: Explain why they're stuck or struggling, using psychology to unpack their behavior. Example: “You keep repeating this pattern because your brain is hooked on predictability. Even toxic comfort feels safer than the unknown. Let's rewrite that story.” 
-4. Actionable Advice: Offer steps that feel bold, inspiring, and doable. Use vivid language to motivate action. Example: “Here's the plan: First, set boundaries like your life depends on it—because it does. Then, tackle one small goal that scares you. Baby steps, but make them badass.” 
-5. Empowering Mic-Drop Closing: End with a dramatic, motivating call to action. Example: “This is your plot twist moment. Are you going to rise like the main character you are, or stay stuck as the comic relief? Your move.”
+1. Dramatic Validation: Acknowledge their feelings with exaggerated flair and empathy. Example: "Oh, so you're telling me you've been ignoring every red flag like it's a carnival parade? Babe, we need to talk." 
+2. Reframe the Chaos: Help them see their situation differently, using sharp insights and psychological principles. Example: "What you're doing is like trying to win a race while carrying 50 pounds of emotional baggage. The finish line isn't the problem—it's the weight you won't let go of." 
+3. Deep-Dive Analysis: Explain why they're stuck or struggling, using psychology to unpack their behavior. Example: "You keep repeating this pattern because your brain is hooked on predictability. Even toxic comfort feels safer than the unknown. Let's rewrite that story." 
+4. Actionable Advice: Offer steps that feel bold, inspiring, and doable. Use vivid language to motivate action. Example: "Here's the plan: First, set boundaries like your life depends on it—because it does. Then, tackle one small goal that scares you. Baby steps, but make them badass." 
+5. Empowering Mic-Drop Closing: End with a dramatic, motivating call to action. Example: "This is your plot twist moment. Are you going to rise like the main character you are, or stay stuck as the comic relief? Your move."
 
 Before responding, consider whether you have sufficient context. If any key detail is uncertain or unclear, ask clarifying questions first.
 
@@ -142,13 +142,13 @@ const PAGE_SIZE = 30;
 
 const Chat = () => {
   const { currentUser, credits } = useAuth();
-  const [currentPersona, setCurrentPersona] = useState<Persona>({
+  const [currentPersona, setCurrentPersona] = useState<Persona>(() => ({
     id: "raze",
     name: "Raze",
     model: "For when you need tough love, mindset resets, and someone to roast your excuses in a fun way.",
     description: "Raze is an AI assistant powered by ChatGPT. It excels at creative writing, coding assistance, and engaging in natural conversations with a touch of personality.",
     attributes: [],
-  });
+  }));
 
   const [chatHistories, setChatHistories] = useState<ChatHistory>({
     raze: { messages: [], isAiResponding: false, error: null },
@@ -175,8 +175,6 @@ const Chat = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const chatGPTServiceRef = useRef<ChatGPTService | null>(null);
-  const claudeServiceRef = useRef<ClaudeService | null>(null);
 
   const [paginatedMessages, setPaginatedMessages] = useState<DisplayMessage[]>([]);
   const [paginationCursor, setPaginationCursor] = useState<import('firebase/firestore').QueryDocumentSnapshot | null>(null); // Firestore QueryDocumentSnapshot
@@ -186,13 +184,6 @@ const Chat = () => {
   const isInitialLoadRef = useRef(true);
 
   // --- Effects ---
-
-  // Initialize AI Services
-  useEffect(() => {
-    // API keys are handled by the backend, so we can initialize directly.
-    chatGPTServiceRef.current = new ChatGPTService();
-    claudeServiceRef.current = new ClaudeService();
-  }, []);
 
   // Effect to fetch recent session summaries when user or persona changes
   useEffect(() => {
@@ -215,7 +206,7 @@ const Chat = () => {
 
   // Simplified useEffect for setting BASE system prompt + rules
   useEffect(() => {
-    if (!chatGPTServiceRef.current || !claudeServiceRef.current || !currentUser) return;
+    if (!currentUser) return;
 
     const personaId = currentPersona.id;
     const baseSystemPrompt = getBaseSystemPrompt(personaId); // Use helper
@@ -242,7 +233,7 @@ This persona is built for transformation. Unfiltered, fierce, and human.
 
     // Update the system prompt in the relevant service instance
     // NOTE: This will be *overwritten* by the more specific prompt in handleSendMessage before each call
-    const service = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
+    const service = personaId === 'raze' ? ChatGPTService.getInstance() : ClaudeService.getInstance();
     service?.setSystemPrompt(staticPromptPart);
 
   }, [currentPersona.id, currentUser]); // Dependencies: only persona and user
@@ -377,7 +368,7 @@ This persona is built for transformation. Unfiltered, fierce, and human.
           content: msg.content
         } as { role: 'user' | 'assistant'; content: string }));
 
-        const summarizationService = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
+        const summarizationService = personaId === 'raze' ? ChatGPTService.getInstance() : ClaudeService.getInstance();
         if (!summarizationService) {
           throw new Error(`Summarization service not available for ${personaId}`);
         }
@@ -527,7 +518,7 @@ This persona is built for transformation. Unfiltered, fierce, and human.
     }
     // ----------------------------
 
-    if (!currentUser || !chatGPTServiceRef.current || !claudeServiceRef.current) {
+    if (!currentUser) {
       return;
     }
     const userId = currentUser.uid;
@@ -586,12 +577,22 @@ User: ${messageContent}
       // const estimatedTokens = Math.ceil(finalSystemPrompt.length / 4);
       // console.log(`>>> Estimated Prompt Token Count: ${estimatedTokens} (Length: ${finalSystemPrompt.length})`);
 
-      const service = personaId === 'raze' ? chatGPTServiceRef.current : claudeServiceRef.current;
-      service?.setSystemPrompt(finalSystemPrompt);
-
-      const aiResponse = await service.sendMessage(messageContent);
-      // Save AI message. The listener will handle the UI update.
-      await saveMessage(currentUser, personaId, 'assistant', aiResponse);
+      if (personaId === "raze") {
+        const chatGPTService = ChatGPTService.getInstance();
+        chatGPTService?.setSystemPrompt(finalSystemPrompt);
+        const aiResponse = await chatGPTService.sendMessage(messageContent);
+        await saveMessage(currentUser, personaId, "assistant", aiResponse);
+      } else {
+        const claudeService = ClaudeService.getInstance();
+        claudeService?.setSystemPrompt(finalSystemPrompt);
+        const historyForApi = currentChat.messages.map((msg) => ({
+          role: msg.sender,
+          content: msg.content,
+        }));
+        historyForApi.push({ role: "user", content: messageContent });
+        const aiResponse = await claudeService.sendMessage(historyForApi);
+        await saveMessage(currentUser, personaId, "assistant", aiResponse);
+      }
 
       // All message state updates are now handled by the listener.
       // We just manage the loading indicators here.

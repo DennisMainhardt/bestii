@@ -78,11 +78,11 @@ export class ClaudeService {
     }
   }
 
-  async sendMessage(userInput: string): Promise<string> {
-    const messages: ClaudeMessage[] = [{ role: 'user', content: userInput }];
-
+  async sendMessage(
+    history: { role: 'user' | 'assistant'; content: string }[]
+  ): Promise<string> {
     try {
-      const response = await this.makeRequest(messages);
+      const response = await this.makeRequest(history);
       const assistantResponse = response.content.find((c) => c.type === 'text');
       return assistantResponse
         ? assistantResponse.text
