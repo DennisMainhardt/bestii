@@ -42,3 +42,6 @@ dist-ssr
 
 # local functions config
 functions/.runtimeconfig.json
+
+# Firebase
+.firebase/
